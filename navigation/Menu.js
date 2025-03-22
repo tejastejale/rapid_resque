@@ -1,9 +1,10 @@
 import { Block, Text, theme } from "galio-framework";
 import { Image, ScrollView, StyleSheet } from "react-native";
-
 import { DrawerItem as DrawerCustomItem } from "../components";
 import Images from "../constants/Images";
 import React from "react";
+import tw from "twrnc";
+import { useRoute } from "@react-navigation/native";
 
 function CustomDrawerContent({
   drawerPosition,
@@ -13,14 +14,21 @@ function CustomDrawerContent({
   state,
   ...rest
 }) {
-  const screens = ["Home", "Profile", "Account", "Elements", "Articles"];
+  const route = state?.routes[state.index]?.name;
+  const screens = ["Home", "Profile"];
+
   return (
     <Block
       style={styles.container}
       forceInset={{ top: "always", horizontal: "never" }}
     >
       <Block flex={0.06} style={styles.header}>
-        <Image styles={styles.logo} source={Images.Logo} />
+        <Text
+          style={tw`text-purple-600 italic tracking-widest font-bold text-2xl -ml-4`}
+        >
+          Rapid Rescue
+        </Text>
+        {/* <Image styles={styles.logo} source={Images.Logo} /> */}
       </Block>
       <Block flex style={{ paddingLeft: 8, paddingRight: 14 }}>
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
@@ -30,11 +38,11 @@ function CustomDrawerContent({
                 title={item}
                 key={index}
                 navigation={navigation}
-                focused={state.index === index ? true : false}
+                focused={route === item}
               />
             );
           })}
-          <Block
+          {/* <Block
             flex
             style={{ marginTop: 24, marginVertical: 8, paddingHorizontal: 8 }}
           >
@@ -48,8 +56,8 @@ function CustomDrawerContent({
             <Text color="#8898AA" style={{ marginTop: 16, marginLeft: 8 }}>
               DOCUMENTATION
             </Text>
-          </Block>
-          <DrawerCustomItem title="Getting Started" navigation={navigation} />
+          </Block> 
+          <DrawerCustomItem title="Getting Started" navigation={navigation} />*/}
         </ScrollView>
       </Block>
     </Block>

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   BackHandler,
+  PixelRatio,
 } from "react-native";
 import { Block, Text } from "galio-framework";
 import Mapbox, {
@@ -44,6 +45,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"; // For Asy
 import { useWebSocket } from "./socket";
 import {
   acceptRequest,
+  cancleRequest,
   completeRequest,
   requestCar,
   requestData,
@@ -52,6 +54,7 @@ import RadarPing from "./Widget/temp";
 import car from "../assets/imgs/car.png";
 import { BASE } from "./API/constants";
 import userPic from "../assets/imgs/user.png";
+import Compass from "./Widget/Compass";
 
 Mapbox.setAccessToken(
   "pk.eyJ1IjoidGVqYXNjb2RlNDciLCJhIjoiY200d3pqMGh2MGtldzJwczgwMTZnbHc0dCJ9.KyxtwzKWPT9n1yDElo8HEQ"
@@ -64,6 +67,9 @@ const Home = () => {
     showMap: true, // Map visibility
     sheetArrow: 0, // Bottom sheet arrow direction
     open: false, // Sidebar open state
+    isRotation: false,
+    isRequested: "",
+    requestedData: "",
   });
   const [compassHeading, setCompassHeading] = useState(0);
   const bottomSheetRef = useRef(null);
@@ -72,7 +78,6 @@ const Home = () => {
   const [loc, setLoc] = useState(null);
   const [role, setRole] = useState("");
   const snapPoints = [150, height * 0.5];
-  const [isRequested, setIsRequested] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [selectedData, setSelectedData] = useState(null);
   const [updatedLocation, setUpdatedLocation] = useState(null);
@@ -84,9 +89,10 @@ const Home = () => {
     routeTime: {},
   });
   const [cameraProps, setCameraProps] = useState({
-    zoom: 35,
+    zoom: 11.5 * (PixelRatio.get() / 2),
     bearing: 0,
     pitch: 50,
+    shouldUpdateCamera: null,
   });
   const [orderCompleted, setOrderCompleted] = useState("false");
   const { sendLocation } = useWebSocket(
@@ -97,6 +103,16 @@ const Home = () => {
   );
 
   useEffect(() => {
+    // Create a reference to know if we should update the camera based on rotation
+    if (uiState.isRotation) {
+      setCameraProps((prev) => ({
+        ...prev,
+        shouldUpdateCamera: true,
+      }));
+    }
+  }, [uiState.isRotation, compassHeading]);
+
+  useEffect(() => {
     if (uiState.open) {
       width.value = withSpring(1, { stiffness: 100, damping: 20 });
       opacity.value = withSpring(1, { stiffness: 100, damping: 20 });
@@ -104,7 +120,7 @@ const Home = () => {
       width.value = withSpring(0, { stiffness: 100, damping: 20 });
       opacity.value = withSpring(0, { stiffness: 100, damping: 20 });
     }
-  }, []);
+  }, [uiState.open]);
 
   useEffect(() => {
     if (orderCompleted !== "false") {
@@ -151,10 +167,10 @@ const Home = () => {
   useEffect(() => {
     const saveToLocal = async () => {
       try {
-        if (isRequested !== "") {
+        if (uiState.isRequested !== "") {
           await AsyncStorage.setItem(
             "isRequested",
-            JSON.stringify(isRequested)
+            JSON.stringify(uiState.isRequested)
           );
         }
       } catch (error) {
@@ -163,7 +179,7 @@ const Home = () => {
     };
 
     saveToLocal();
-  }, [isRequested]);
+  }, [uiState.isRequested]);
 
   useEffect(() => {
     const saveToLocal = async () => {
@@ -196,8 +212,10 @@ const Home = () => {
         const socketDataStr = await AsyncStorage.getItem("socketData");
         // console.log(socketDataStr);
         // Parse the string to boolean or keep as string based on your needs
-        setIsRequested(JSON.parse(isRequestedStr));
-
+        setUiState((prev) => ({
+          ...prev,
+          isRequested: JSON.parse(isRequestedStr),
+        }));
         // Directly parse to boolean
         setRequestAccepted(JSON.parse(requestAcceptedStr));
 
@@ -258,14 +276,12 @@ const Home = () => {
   }, [loc]);
 
   useEffect(() => {
-    // if (role === "customer") {
     if (
       selectedData?.data?.location?.lat &&
       selectedData?.data?.location?.lon
     ) {
       createRoute();
     }
-    // }
   }, [socketData, selectedData, loc]);
 
   useEffect(() => {
@@ -375,7 +391,12 @@ const Home = () => {
     try {
       const res = await requestCar(body);
       if (res?.code === 201) {
-        setIsRequested(true);
+        console.log(JSON.stringify(res, null, 2));
+        setUiState((prev) => ({
+          ...prev,
+          isRequested: true,
+          requestedData: res,
+        }));
       } else alert("Something went wrong!!");
     } catch (error) {
       alert("Something went wrong!");
@@ -524,6 +545,18 @@ const Home = () => {
     }));
   };
 
+  const cancleCarRequest = async () => {
+    try {
+      const reqId = uiState.requestedData?.data?.id;
+      const res = await cancleRequest(reqId);
+      if (res?.code === 200) {
+        setUiState((prev) => ({ ...prev, isRequested: false }));
+      } else alert("Something went wrong!!");
+    } catch (error) {
+      alert("Something went wrong!");
+    }
+  };
+
   const clear = async () => {
     try {
       // Clear AsyncStorage items
@@ -536,7 +569,10 @@ const Home = () => {
       setLocData(null);
       setLoc(null);
       setRole("");
-      setIsRequested("");
+      setUiState((prev) => ({
+        ...prev,
+        isRequested: "",
+      }));
       setSelectedId(null);
       setSelectedData(null);
       setUpdatedLocation(null);
@@ -545,11 +581,6 @@ const Home = () => {
         routeThings: null,
         routeTime: {},
       });
-      // setCameraProps({
-      //   zoom: 16,
-      //   bearing: 0,
-      //   pitch: 50,
-      // });
 
       console.log("All states reset to default values");
     } catch (error) {
@@ -570,10 +601,6 @@ const Home = () => {
   const toggleSidebar = () => {
     setUiState((prev) => ({ ...prev, open: !prev.open }));
   };
-
-  useEffect(() => {
-    console.log(compassHeading);
-  }, [compassHeading]);
 
   return (
     <Block flex center style={tw`w-full`}>
@@ -600,6 +627,21 @@ const Home = () => {
         <FontAwesome6 name="user-doctor" size={20} color="white" />
       </TouchableOpacity>
 
+      {!uiState.isMapLoading && (
+        <TouchableOpacity
+          style={tw`z-0 absolute z-10 top-5 left-0 rounded-full m-2 py-2`}
+        >
+          <Compass
+            onPress={() =>
+              setUiState((prev) => ({
+                ...prev,
+                isRotation: !uiState.isRotation,
+              }))
+            }
+          />
+        </TouchableOpacity>
+      )}
+
       <Animated.View style={[styles.sidebar, sidebarStyle, { zIndex: 1000 }]}>
         <View style={styles.bg}>
           <GeminiChat setOpen={toggleSidebar} open={uiState.open} />
@@ -615,10 +657,10 @@ const Home = () => {
           onMapLoadingError={() =>
             alert("Something went wrong while loading the map!")
           }
-          onRegionDidChange={(region) => {
+          onMapIdle={(region) => {
             setCameraProps({
               zoom: region.properties.zoom,
-              bearing: region.properties.bearing,
+              bearing: region.properties.heading,
               pitch: region.properties.pitch,
             });
           }}
@@ -647,16 +689,28 @@ const Home = () => {
             }}
           />
           {/* Camera Settings */}
-          <Camera
-            pitch={40}
-            centerCoordinate={loc}
-            zoomLevel={cameraProps.zoom}
-            // pitch={cameraProps.pitch}
-            // heading={cameraProps.bearing}
-            heading={compassHeading}
-            animationMode="easeTo"
-            animationDuration={2000}
-          />
+          {(cameraProps.zoom === 11.5 * (PixelRatio.get() / 2) ||
+            cameraProps.shouldUpdateCamera) && (
+            <Camera
+              pitch={40}
+              centerCoordinate={loc}
+              zoomLevel={cameraProps.zoom}
+              heading={
+                uiState.isRotation ? compassHeading : cameraProps.bearing
+              }
+              animationMode="flyTo"
+              animationDuration={2000}
+              onComplete={() => {
+                // Reset the flag after camera animation completes
+                if (cameraProps.shouldUpdateCamera) {
+                  setCameraProps((prev) => ({
+                    ...prev,
+                    shouldUpdateCamera: false,
+                  }));
+                }
+              }}
+            />
+          )}
 
           {/* Marker for the Current Location */}
           <PointAnnotation id="marker" style={tw`h-10 w-10`} coordinate={loc}>
@@ -928,7 +982,7 @@ const Home = () => {
             </View>
           )}
         >
-          {isRequested ? (
+          {uiState.isRequested ? (
             <BottomSheetScrollView style={tw`flex-1 px-4`}>
               {socketData?.type === "order_accepted_event" &&
               "driver" in socketData ? (
@@ -1016,7 +1070,7 @@ const Home = () => {
                     </View>
                   </View>
                   <TouchableOpacity
-                    onPress={() => setIsRequested(false)}
+                    onPress={() => cancleCarRequest()}
                     style={tw`bg-violet-600 p-3 py-3 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-center items-center`}
                   >
                     <Text style={tw`text-white`}>Cancle Request</Text>

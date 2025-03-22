@@ -2,6 +2,7 @@ import axios from "axios";
 import {
   ACCEPT_REQUEST,
   BASE,
+  CANCLE_REQUEST,
   COMPLETE_REQUEST,
   DRIVER_REGISTER,
   LOGIN,
@@ -50,3 +51,6 @@ export const request_data = () => API.get(`${REQUEST_DATA}`);
 
 export const complete_request = (id) =>
   API.post(`${COMPLETE_REQUEST}/${id}/complete/`);
+
+export const cancle_request = (id) =>
+  API.post(`${CANCLE_REQUEST}/${id}/cancel/`);

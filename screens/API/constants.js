@@ -17,3 +17,5 @@ export const ACCEPT_REQUEST = `${BASE}/request-api/accept-request`;
 export const REQUEST_DATA = `${BASE}/request-api/car-requests/?status=in_progress`;
 
 export const COMPLETE_REQUEST = `${BASE}/request-api/car-requests`;
+
+export const CANCLE_REQUEST = `${BASE}/request-api/car-requests`;

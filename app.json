@@ -25,6 +25,7 @@
     },
     "description": "Argon React Native, based on Argon Design System. Coded by Creative Tim",
     "extra": {
+      "mapboxAccessToken": "pk.eyJ1IjoidGVqYXNjb2RlNDciLCJhIjoiY200d3pqMGh2MGtldzJwczgwMTZnbHc0dCJ9.KyxtwzKWPT9n1yDElo8HEQ",
       "eas": {
         "projectId": "6c3880db-d3b6-4e35-9263-775d935bafc4"
       }

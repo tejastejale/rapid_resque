@@ -35,3 +35,12 @@ export const completeRequest = async (id) => {
     return error;
   }
 };
+
+export const cancleRequest = async (id) => {
+  try {
+    const res = await API.cancle_request(id);
+    return res.data;
+  } catch (error) {
+    return error;
+  }
+};
