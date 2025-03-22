@@ -1,0 +1,68 @@
+{
+  "name": "argon-react-native",
+  "version": "1.9.0",
+  "description": "Argon React Native, based on Argon Design System. Coded by Creative Tim",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "eject": "expo eject"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/creativetimofficial/argon-react-native.git"
+  },
+  "dependencies": {
+    "@react-native-masked-view/masked-view": "0.3.2",
+    "@react-navigation/bottom-tabs": "^7.3.1",
+    "@react-navigation/compat": "^5.3.20",
+    "@react-navigation/drawer": "^7.2.1",
+    "@react-navigation/native": "^7.0.17",
+    "@react-navigation/stack": "^7.2.1",
+    "@use-expo/font": "^2.0.0",
+    "babel-plugin-module-resolver": "^5.0.2",
+    "expo": "^52.0.40",
+    "expo-app-loading": "^2.1.1",
+    "expo-asset": "~11.0.4",
+    "expo-font": "~13.0.4",
+    "expo-modules-core": "~2.2.3",
+    "expo-splash-screen": "~0.29.22",
+    "galio-framework": "^0.8.0",
+    "prop-types": "^15.8.1",
+    "react": "18.3.1",
+    "react-native": "0.76.7",
+    "react-native-gesture-handler": "~2.20.2",
+    "react-native-modal-dropdown": "^1.0.2",
+    "react-native-reanimated": "~3.16.1",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-screens": "~4.4.0"
+  },
+  "devDependencies": {
+    "babel-preset-expo": "~12.0.0"
+  },
+  "keywords": [
+    "argon react native",
+    "argon design system",
+    "argon app react native",
+    "argon iOS",
+    "react native iOS",
+    "creative tim",
+    "argon Android",
+    "react native ui kit",
+    "react native expo",
+    "freebie",
+    "react native argon design",
+    "react native galio",
+    "galio argon free",
+    "galio react native free app",
+    "argon expo react native",
+    "react native ui template"
+  ],
+  "author": "Creative Tim <hello@creative-tim.com> (https://www.creative-tim.com/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/creativetimofficial/argon-react-native/issues"
+  },
+  "homepage": "https://demos.creative-tim.com/argon-react-native"
+}
