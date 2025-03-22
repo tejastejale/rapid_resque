@@ -96,14 +96,15 @@ const Home = () => {
     setOrderCompleted
   );
 
-  // When the sidebar is opened or closed, the values are animated
-  if (uiState.open) {
-    width.value = withSpring(1, { stiffness: 100, damping: 20 });
-    opacity.value = withSpring(1, { stiffness: 100, damping: 20 });
-  } else {
-    width.value = withSpring(0, { stiffness: 100, damping: 20 });
-    opacity.value = withSpring(0, { stiffness: 100, damping: 20 });
-  }
+  useEffect(() => {
+    if (uiState.open) {
+      width.value = withSpring(1, { stiffness: 100, damping: 20 });
+      opacity.value = withSpring(1, { stiffness: 100, damping: 20 });
+    } else {
+      width.value = withSpring(0, { stiffness: 100, damping: 20 });
+      opacity.value = withSpring(0, { stiffness: 100, damping: 20 });
+    }
+  }, []);
 
   useEffect(() => {
     if (orderCompleted !== "false") {

@@ -13,7 +13,7 @@ import {
 import { Button } from "galio-framework";
 import tw from "twrnc";
 import ArInput from "../../components/Input";
-import * as ImagePicker from "expo-image-picker";
+// import * as ImagePicker from "expo-image-picker";
 import { Icon } from "galio-framework";
 import { LinearGradient } from "expo-linear-gradient";
 import { driverRegister } from "../API/actions/register";
@@ -164,15 +164,16 @@ export default function DriverLogin({ navigation }) {
   };
 
   const handleFileUpload = async (field) => {
-    const per = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const per = "await ImagePicker.requestMediaLibraryPermissionsAsync()";
     if (per.status === "granted") {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: true,
-        allowsMultipleSelection: field === "carPhoto" ? true : false, // Enable multiple selections
-        selectionLimit: field === "carPhoto" ? 6 : 1,
-        mediaTypes: ["images"],
-        quality: 1,
-      });
+      const result = "asd";
+      // const result = await ImagePicker.launchImageLibraryAsync({
+      //   allowsEditing: true,
+      //   allowsMultipleSelection: field === "carPhoto" ? true : false, // Enable multiple selections
+      //   selectionLimit: field === "carPhoto" ? 6 : 1,
+      //   mediaTypes: ["images"],
+      //   quality: 1,
+      // });
 
       if (!result.canceled) {
         const imageUris = result.assets.map((asset) => asset.uri); // Extract URIs
