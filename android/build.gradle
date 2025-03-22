@@ -9,6 +9,9 @@ buildscript {
         kotlinVersion = findProperty('android.kotlinVersion') ?: '1.9.25'
 
         ndkVersion = "26.1.10909125"
+
+        MAPBOX_DOWNLOADS_TOKEN = "pk.eyJ1IjoidGVqYXNjb2RlNDciLCJhIjoiY200d3pqMGh2MGtldzJwczgwMTZnbHc0dCJ9.KyxtwzKWPT9n1yDElo8HEQ"  // ✅ Replace with your actual token
+
     }
     repositories {
         google()
@@ -37,5 +40,7 @@ allprojects {
         google()
         mavenCentral()
         maven { url 'https://www.jitpack.io' }
+        maven { url 'https://api.mapbox.com/downloads/v2/releases/maven' }  // ✅ Add this line
+
     }
 }

@@ -13,9 +13,9 @@ class DrawerItem extends React.Component {
       case "Home":
         return (
           <Icon
-            name="shop"
-            family="ArgonExtra"
-            size={14}
+            name="home"
+            family="AntDesign"
+            size={20}
             color={focused ? "white" : argonTheme.COLORS.PRIMARY}
           />
         );
@@ -40,8 +40,8 @@ class DrawerItem extends React.Component {
       case "Profile":
         return (
           <Icon
-            name="chart-pie-35"
-            family="ArgonExtra"
+            name="user"
+            family="AntDesign"
             size={14}
             color={focused ? "white" : argonTheme.COLORS.WARNING}
           />
@@ -56,12 +56,14 @@ class DrawerItem extends React.Component {
           />
         );
       case "Getting Started":
-        return (<Icon
-          name="spaceship"
-          family="ArgonExtra"
-          size={14}
-          color={focused ? "white" : "rgba(0,0,0,0.5)"}
-        />);
+        return (
+          <Icon
+            name="spaceship"
+            family="ArgonExtra"
+            size={14}
+            color={focused ? "white" : "rgba(0,0,0,0.5)"}
+          />
+        );
       case "Log out":
         return <Icon />;
       default:
@@ -74,7 +76,7 @@ class DrawerItem extends React.Component {
 
     const containerStyles = [
       styles.defaultStyle,
-      focused ? [styles.activeStyle, styles.shadow] : null
+      focused ? [styles.activeStyle, styles.shadow] : null,
     ];
 
     return (
@@ -84,7 +86,7 @@ class DrawerItem extends React.Component {
           title == "Getting Started"
             ? Linking.openURL(
                 "https://demos.creative-tim.com/argon-pro-react-native/docs/"
-              ).catch(err => console.error("An error occurred", err))
+              ).catch((err) => console.error("An error occurred", err))
             : navigation.navigate(title)
         }
       >
@@ -110,21 +112,21 @@ class DrawerItem extends React.Component {
 const styles = StyleSheet.create({
   defaultStyle: {
     paddingVertical: 16,
-    paddingHorizontal: 16
+    paddingHorizontal: 16,
   },
   activeStyle: {
     backgroundColor: argonTheme.COLORS.ACTIVE,
-    borderRadius: 4
+    borderRadius: 4,
   },
   shadow: {
     shadowColor: theme.COLORS.BLACK,
     shadowOffset: {
       width: 0,
-      height: 2
+      height: 2,
     },
     shadowRadius: 8,
-    shadowOpacity: 0.1
-  }
+    shadowOpacity: 0.1,
+  },
 });
 
 export default DrawerItem;
