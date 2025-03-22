@@ -8,7 +8,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/icon.png",
       "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
@@ -17,8 +17,20 @@
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tejas1324.argonfreereactnative",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
-    "description": "Argon React Native, based on Argon Design System. Coded by Creative Tim"
+    "description": "Argon React Native, based on Argon Design System. Coded by Creative Tim",
+    "extra": {
+      "eas": {
+        "projectId": "6c3880db-d3b6-4e35-9263-775d935bafc4"
+      }
+    },
+    "android": {
+      "package": "com.tejas1324.argonfreereactnative"
+    }
   }
 }
