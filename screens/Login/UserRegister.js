@@ -21,6 +21,7 @@ import {
   ALERT_TYPE,
 } from "react-native-alert-notification"; // Import alert notification module
 import ArButton from "../../components/Button";
+import MaskedView from "@react-native-masked-view/masked-view";
 
 const { width } = Dimensions.get("window");
 
@@ -46,12 +47,14 @@ export default function UserLogin({ navigation }) {
   const animatedValue = new Animated.Value(-500);
 
   useEffect(() => {
-    Animated.spring(animatedValue, {
-      toValue: 0,
-      friction: 6,
-      tension: 50,
-      useNativeDriver: true,
-    }).start();
+    setTimeout(() => {
+      Animated.spring(animatedValue, {
+        toValue: 0,
+        friction: 6,
+        tension: 50,
+        useNativeDriver: true,
+      }).start();
+    }, 500);
   }, []);
 
   useEffect(() => {
@@ -245,16 +248,31 @@ export default function UserLogin({ navigation }) {
               <Text style={tw`font-semibold italic text-2xl mb-2`}>
                 Welcome to
               </Text>
-              <Animated.Text
-                style={[
-                  tw`text-violet-600 text-2xl italic font-semibold`,
-                  {
-                    transform: [{ translateX: animatedValue }],
-                  },
-                ]}
+              <MaskedView
+                style={{ height: "auto", width: 300 }}
+                maskElement={
+                  <View style={tw`flex items-start justify-start h-full`}>
+                    <Animated.Text
+                      style={[
+                        tw`text-violet-600 italic font-semibold`,
+                        {
+                          fontSize: 24,
+                          transform: [{ translateX: animatedValue }],
+                        },
+                      ]}
+                    >
+                      Rapid Rescue
+                    </Animated.Text>
+                  </View>
+                }
               >
-                Rapid Rescue
-              </Animated.Text>
+                <LinearGradient
+                  colors={["red", "#a684ff"]}
+                  start={{ x: 1, y: 4 }}
+                  end={{ x: 0, y: 1 }}
+                  style={{ flex: 1 }}
+                />
+              </MaskedView>
             </View>
             <Text style={tw`font-normal italic text-md`}>
               Do note your password for login!

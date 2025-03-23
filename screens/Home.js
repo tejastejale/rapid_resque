@@ -32,7 +32,6 @@ import BottomSheet, {
 } from "@gorhom/bottom-sheet";
 import { Dimensions } from "react-native";
 import { Icon } from "../components";
-const { height } = Dimensions.get("screen");
 import * as Linking from "expo-linking";
 import { FontAwesome, FontAwesome6 } from "@expo/vector-icons";
 import Animated, {
@@ -55,10 +54,48 @@ import car from "../assets/imgs/car.png";
 import { BASE } from "./API/constants";
 import userPic from "../assets/imgs/user.png";
 import Compass from "./Widget/Compass";
+import MaskedView from "@react-native-masked-view/masked-view";
+import { LinearGradient } from "expo-linear-gradient";
 
 Mapbox.setAccessToken(
   "pk.eyJ1IjoidGVqYXNjb2RlNDciLCJhIjoiY200d3pqMGh2MGtldzJwczgwMTZnbHc0dCJ9.KyxtwzKWPT9n1yDElo8HEQ"
 );
+
+const { width, height } = Dimensions.get("window");
+const smallerDimension = Math.min(width, height);
+
+const calculateAdaptiveZoom = () => {
+  // Base zoom level
+  const baseZoom = 16;
+
+  // Get pixel ratio (capped to prevent extreme values)
+  const pixelRatio = Math.min(PixelRatio.get(), 3.5);
+
+  // Adjust for screen size
+  // Smaller screens get slightly higher zoom levels
+  let screenSizeAdjustment = 0;
+  if (smallerDimension < 350) {
+    screenSizeAdjustment = 1; // Small phones
+  } else if (smallerDimension < 500) {
+    screenSizeAdjustment = 0.5; // Medium phones
+  } else if (smallerDimension < 800) {
+    screenSizeAdjustment = 0; // Large phones
+  } else {
+    screenSizeAdjustment = -0.5; // Tablets
+  }
+
+  // Platform-specific adjustment (optional)
+  const platformAdjustment = 0.5;
+
+  // Calculate final zoom
+  let adaptiveZoom = baseZoom + screenSizeAdjustment + platformAdjustment;
+
+  // Apply pixel ratio factor (with moderation)
+  adaptiveZoom = adaptiveZoom * (0.8 + pixelRatio * 0.1);
+
+  // Ensure zoom stays within reasonable bounds
+  return Math.max(14, Math.min(adaptiveZoom, 19));
+};
 
 const Home = () => {
   const [uiState, setUiState] = useState({
@@ -89,7 +126,7 @@ const Home = () => {
     routeTime: {},
   });
   const [cameraProps, setCameraProps] = useState({
-    zoom: 11.5 * (PixelRatio.get() / 2),
+    zoom: calculateAdaptiveZoom(),
     bearing: 0,
     pitch: 50,
     shouldUpdateCamera: null,
@@ -620,6 +657,7 @@ const Home = () => {
           <Text style={tw`mt-2 text-base text-black`}>Loading map...</Text>
         </View>
       )}
+
       <TouchableOpacity
         onPress={() => setUiState((prev) => ({ ...prev, open: !prev.open }))}
         style={tw`z-1000 absolute z-10 top-0 right-0 bg-violet-600 rounded-full p-5 m-2 py-4.5`}
@@ -689,28 +727,26 @@ const Home = () => {
             }}
           />
           {/* Camera Settings */}
-          {(cameraProps.zoom === 11.5 * (PixelRatio.get() / 2) ||
-            cameraProps.shouldUpdateCamera) && (
-            <Camera
-              pitch={40}
-              centerCoordinate={loc}
-              zoomLevel={cameraProps.zoom}
-              heading={
-                uiState.isRotation ? compassHeading : cameraProps.bearing
+          {/* {(cameraProps.zoom === calculateAdaptiveZoom() ||
+            cameraProps.shouldUpdateCamera) && ( */}
+          <Camera
+            pitch={40}
+            centerCoordinate={loc}
+            zoomLevel={!uiState.isRotation ? cameraProps.zoom : undefined}
+            heading={uiState.isRotation ? compassHeading : cameraProps.bearing}
+            animationMode="flyTo"
+            animationDuration={2000}
+            onComplete={() => {
+              // Reset the flag after camera animation completes
+              if (cameraProps.shouldUpdateCamera) {
+                setCameraProps((prev) => ({
+                  ...prev,
+                  shouldUpdateCamera: false,
+                }));
               }
-              animationMode="flyTo"
-              animationDuration={2000}
-              onComplete={() => {
-                // Reset the flag after camera animation completes
-                if (cameraProps.shouldUpdateCamera) {
-                  setCameraProps((prev) => ({
-                    ...prev,
-                    shouldUpdateCamera: false,
-                  }));
-                }
-              }}
-            />
-          )}
+            }}
+          />
+          {/* )} */}
 
           {/* Marker for the Current Location */}
           <PointAnnotation id="marker" style={tw`h-10 w-10`} coordinate={loc}>

@@ -5,6 +5,7 @@ import Carousel from "react-native-reanimated-carousel";
 import tw from "twrnc";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import MaskedView from "@react-native-masked-view/masked-view";
 
 const { width } = Dimensions.get("window");
 
@@ -94,24 +95,34 @@ export default function MainScreen({ navigation }) {
             >
               Welcome to
             </Text>
-            <Animated.Text
-              style={[
-                tw`text-violet-600 italic font-semibold`,
-                {
-                  fontSize: getResponsiveFontSize(24),
-                  transform: [{ translateX: animatedValue }],
-                },
-              ]}
+
+            <MaskedView
+              style={{ height: "auto", width: 300 }}
+              maskElement={
+                <View style={tw`flex items-start justify-start h-full`}>
+                  <Animated.Text
+                    style={[
+                      tw`text-violet-600 italic font-semibold`,
+                      {
+                        fontSize: getResponsiveFontSize(24),
+                        transform: [{ translateX: animatedValue }],
+                      },
+                    ]}
+                  >
+                    Rapid Rescue
+                  </Animated.Text>
+                </View>
+              }
             >
-              Rapid Rescue
-            </Animated.Text>
+              <LinearGradient
+                colors={["red", "#a684ff"]}
+                start={{ x: 1, y: 4 }}
+                end={{ x: 0, y: 1 }}
+                style={{ flex: 1 }}
+              />
+            </MaskedView>
           </View>
-          <Text
-            style={[
-              tw`font-normal italic`,
-              { fontSize: getResponsiveFontSize(16) },
-            ]}
-          >
+          <Text style={tw`font-normal italic text-md`}>
             We provide solutions to fulfill your emergency needs with just one
             click !!!
           </Text>

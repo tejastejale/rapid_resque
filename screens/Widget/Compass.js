@@ -13,6 +13,7 @@ const Compass = ({ onPress }) => {
   const [heading, setHeading] = useState(0);
   const rotateValue = useRef(new Animated.Value(0)).current;
   const scaleValue = useRef(new Animated.Value(1)).current; // Scale animation
+  const [has, setHas] = useState(0);
 
   useEffect(() => {
     checkMagnetometer();
@@ -20,10 +21,9 @@ const Compass = ({ onPress }) => {
 
   const checkMagnetometer = async () => {
     const magnetometerAvailable = await Magnetometer.isAvailableAsync();
+    setHas(magnetometerAvailable);
     if (magnetometerAvailable) {
       startMagnetometer();
-    } else {
-      startGPSCompass();
     }
   };
 
@@ -36,24 +36,6 @@ const Compass = ({ onPress }) => {
     });
 
     return () => Magnetometer.removeAllListeners();
-  };
-
-  const startGPSCompass = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") return;
-
-    Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.High,
-        timeInterval: 600,
-        distanceInterval: 2,
-      },
-      (location) => {
-        const newHeading = Math.random() * 360; // Simulating movement
-        setHeading(newHeading);
-        animateCompass(newHeading);
-      }
-    );
   };
 
   const animateCompass = (newHeading) => {
@@ -92,33 +74,42 @@ const Compass = ({ onPress }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableWithoutFeedback
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-      >
-        <Animated.View style={[styles.compassContainer, rotateStyle]}>
-          <Image
-            source={{
-              uri: "https://media.geeksforgeeks.org/wp-content/uploads/20240122153821/compass.png",
-            }}
-            style={styles.compassImage}
-          />
-        </Animated.View>
-      </TouchableWithoutFeedback>
-    </View>
+    <>
+      {has ? (
+        <View style={styles.container}>
+          <TouchableWithoutFeedback
+            onPress={onPress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+          >
+            <Animated.View style={[styles.compassContainer, rotateStyle]}>
+              <Image
+                source={{
+                  uri: "https://media.geeksforgeeks.org/wp-content/uploads/20240122153821/compass.png",
+                }}
+                style={styles.compassImage}
+              />
+            </Animated.View>
+          </TouchableWithoutFeedback>
+        </View>
+      ) : null}
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 60,
+  },
   compassContainer: {
     width: "fit-content",
     height: "fit-content",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "white",
     borderRadius: 60,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -127,7 +118,12 @@ const styles = StyleSheet.create({
     elevation: 5,
     padding: 5,
   },
-  compassImage: { width: 80, height: 80 },
+  compassImage: {
+    width: 80,
+    height: 80,
+    backgroundColor: "white",
+    borderRadius: 60,
+  },
 });
 
 export default Compass;

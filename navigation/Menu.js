@@ -5,6 +5,8 @@ import Images from "../constants/Images";
 import React from "react";
 import tw from "twrnc";
 import { useRoute } from "@react-navigation/native";
+import MaskedView from "@react-native-masked-view/masked-view";
+import { LinearGradient } from "expo-linear-gradient";
 
 function CustomDrawerContent({
   drawerPosition,
@@ -23,11 +25,23 @@ function CustomDrawerContent({
       forceInset={{ top: "always", horizontal: "never" }}
     >
       <Block flex={0.06} style={styles.header}>
-        <Text
-          style={tw`text-purple-600 italic tracking-widest font-bold text-2xl -ml-4`}
+        <MaskedView
+          style={{ height: 60, width: 300 }}
+          maskElement={
+            <Block style={tw`flex items-start justify-center h-full`}>
+              <Text style={[tw`text-black font-semibold text-3xl italic`]}>
+                Rapid Rescue
+              </Text>
+            </Block>
+          }
         >
-          Rapid Rescue
-        </Text>
+          <LinearGradient
+            colors={["red", "#a684ff"]}
+            start={{ x: 1, y: 4 }}
+            end={{ x: 0, y: 1 }}
+            style={{ flex: 1 }}
+          />
+        </MaskedView>
         {/* <Image styles={styles.logo} source={Images.Logo} /> */}
       </Block>
       <Block flex style={{ paddingLeft: 8, paddingRight: 14 }}>
