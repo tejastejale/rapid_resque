@@ -4,6 +4,8 @@ import { Block, Text, theme } from "galio-framework";
 
 import Icon from "./Icon";
 import argonTheme from "../constants/Theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { makeLogout } from "../screens/API/actions/logout";
 
 class DrawerItem extends React.Component {
   renderIcon = () => {
@@ -64,13 +66,32 @@ class DrawerItem extends React.Component {
             color={focused ? "white" : "rgba(0,0,0,0.5)"}
           />
         );
-      case "Log out":
-        return <Icon />;
+      case "Logout":
+        return (
+          <Icon
+            name={"logout"}
+            family="MaterialIcons"
+            size={14}
+            color={focused ? "white" : "rgba(0,0,0,0.5)"}
+          />
+        );
       default:
         return null;
     }
   };
 
+  handleLogout = async (title) => {
+    const { navigation } = this.props;
+
+    try {
+      const res = await makeLogout();
+      AsyncStorage.clear();
+      navigation.navigate("Login");
+    } catch (error) {
+      console.log(error);
+      alert("Could not logout, try again later!");
+    }
+  };
   render() {
     const { focused, title, navigation } = this.props;
 
@@ -83,10 +104,8 @@ class DrawerItem extends React.Component {
       <TouchableOpacity
         style={{ height: 60 }}
         onPress={() =>
-          title == "Getting Started"
-            ? Linking.openURL(
-                "https://demos.creative-tim.com/argon-pro-react-native/docs/"
-              ).catch((err) => console.error("An error occurred", err))
+          title === "Logout"
+            ? this.handleLogout(title)
             : navigation.navigate(title)
         }
       >

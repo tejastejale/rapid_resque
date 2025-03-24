@@ -121,6 +121,7 @@ const Home = () => {
   const width = useSharedValue(0); // Start with 0 width
   const opacity = useSharedValue(0); // Start with 0 opacity
   const [requestAccepted, setRequestAccepted] = useState("");
+  const [isCompleted, setIsCompleted] = useState(false);
   const [routeDirections, setRouteDirections] = useState({
     routeThings: null,
     routeTime: {},
@@ -131,13 +132,17 @@ const Home = () => {
     pitch: 50,
     shouldUpdateCamera: null,
   });
-  const [orderCompleted, setOrderCompleted] = useState("false");
+
   const { sendLocation } = useWebSocket(
     loc,
     setSocketData,
     setUpdatedLocation,
-    setOrderCompleted
+    setIsCompleted
   );
+
+  useEffect(() => {
+    if (isCompleted) clear();
+  }, [isCompleted]);
 
   useEffect(() => {
     // Create a reference to know if we should update the camera based on rotation
@@ -158,12 +163,6 @@ const Home = () => {
       opacity.value = withSpring(0, { stiffness: 100, damping: 20 });
     }
   }, [uiState.open]);
-
-  useEffect(() => {
-    if (orderCompleted !== "false") {
-      clear();
-    }
-  }, [orderCompleted]);
 
   useEffect(() => {
     const saveSelectedData = async () => {
@@ -428,7 +427,6 @@ const Home = () => {
     try {
       const res = await requestCar(body);
       if (res?.code === 201) {
-        console.log(JSON.stringify(res, null, 2));
         setUiState((prev) => ({
           ...prev,
           isRequested: true,
@@ -471,7 +469,6 @@ const Home = () => {
         setRequestAccepted(true);
       } else {
         alert("Something went wrong!");
-        console.log(res);
       }
     } catch (error) {
       alert("Something went wrong!");
@@ -603,12 +600,12 @@ const Home = () => {
       await AsyncStorage.removeItem("socketData");
 
       setSocketData([]);
-      setLocData(null);
-      setLoc(null);
-      setRole("");
+      // setLocData(null);
+      // setLoc(null);
       setUiState((prev) => ({
         ...prev,
         isRequested: "",
+        requestedData: "",
       }));
       setSelectedId(null);
       setSelectedData(null);
@@ -789,7 +786,6 @@ const Home = () => {
                 <View />
               </PointAnnotation>
             )}
-
           {updatedLocation?.type === "location_update" &&
             role === "customer" && (
               <PointAnnotation
@@ -864,14 +860,14 @@ const Home = () => {
               nestedScrollEnabled={true}
               showsVerticalScrollIndicator={true}
             >
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 onPress={() => {
                   clear();
                 }}
                 style={tw`bg-violet-600 p-3 py-3 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-center items-center`}
               >
                 <Text style={tw`text-white`}>Cancle Request</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
               <View
                 style={tw`bg-white p-4 h-fit rounded-lg mb-3 shadow-md flex items-center`}
               >
@@ -981,11 +977,12 @@ const Home = () => {
                         family="FontAwesome"
                         style={tw`text-orange-700`}
                       />
-                      <View style={tw`flex`}>
+
+                      <View style={tw`flex w-[80%]`}>
                         <Text style={tw`text-lg font-bold`}>
                           No requests for now
                         </Text>
-                        <Text style={tw`text-sm text-gray-500 w-fit`}>
+                        <Text style={tw`text-sm text-gray-500 w-fit break-all`}>
                           Relax but hang tight, a request might come in any
                           moment!
                         </Text>

@@ -10,7 +10,7 @@ import * as Location from "expo-location";
 import { Magnetometer } from "expo-sensors";
 
 const Compass = ({ onPress }) => {
-  const [heading, setHeading] = useState(0);
+  // const [heading, setHeading] = useState(0);
   const rotateValue = useRef(new Animated.Value(0)).current;
   const scaleValue = useRef(new Animated.Value(1)).current; // Scale animation
   const [has, setHas] = useState(0);
@@ -31,7 +31,7 @@ const Compass = ({ onPress }) => {
     Magnetometer.addListener((data) => {
       let angle = Math.atan2(data.y, data.x) * (160 / Math.PI);
       if (angle < 0) angle += 360;
-      setHeading(angle);
+      // setHeading(angle);
       animateCompass(angle);
     });
 
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
-    elevation: 5,
+    // elevation: 5,
     padding: 5,
   },
   compassImage: {

@@ -309,16 +309,6 @@ class Header extends React.Component {
       bgColor && { backgroundColor: bgColor },
     ];
 
-    const handleLogout = async () => {
-      try {
-        const res = await makeLogout();
-        navigation.navigate("Login");
-        AsyncStorage.clear();
-      } catch (error) {
-        alert("Could not logout, try again later!");
-      }
-    };
-
     return (
       <Block style={headerStyles}>
         <NavBar
@@ -341,29 +331,32 @@ class Header extends React.Component {
               style={{ marginTop: 2 }}
             />
           }
-          right={
-            <View onTouchStart={handleLogout} style={tw`flex flex-row`}>
-              <Text
-                style={[
-                  styles.title,
-                  { color: argonTheme.COLORS[white ? "WHITE" : "HEADER"] },
-                  titleColor && { color: titleColor },
-                ]}
-              >
-                Logout
-              </Text>
-              <Icon
-                name={"logout"}
-                family="MaterialIcons"
-                size={20}
-                color={
-                  iconColor ||
-                  (white ? argonTheme.COLORS.WHITE : argonTheme.COLORS.ICON)
-                }
-                style={tw`-ml-3 font-bold`}
-              />
-            </View>
-          }
+          // right={
+          //   <View
+          //     onTouchStart={handleLogout}
+          //     style={tw`flex flex-row gap-2 items-end`}
+          //   >
+          //     <Text
+          //       style={[
+          //         { fontSize: 16, fontWeight: "bold" },
+          //         { color: argonTheme.COLORS[white ? "WHITE" : "HEADER"] },
+          //         titleColor && { color: titleColor },
+          //       ]}
+          //     >
+          //       Logout
+          //     </Text>
+          //     <Icon
+          //       name={"logout"}
+          //       family="MaterialIcons"
+          //       size={20}
+          //       color={
+          //         iconColor ||
+          //         (white ? argonTheme.COLORS.WHITE : argonTheme.COLORS.ICON)
+          //       }
+          //       style={tw`font-bold`}
+          //     />
+          //   </View>
+          // }
           leftStyle={{ paddingVertical: 12, flex: 0.2 }}
           titleStyle={[
             styles.title,
@@ -389,7 +382,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   navbar: {
-    paddingVertical: 0,
+    paddingTop: 50,
+    paddingBottom: 20,
     // paddingBottom: theme.SIZES.BASE * 1.5,
     // paddingTop: iPhoneX ? theme.SIZES.BASE * 4 : theme.SIZES.BASE,
     zIndex: 5,

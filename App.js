@@ -12,6 +12,7 @@ enableScreens();
 
 import Screens from "./navigation/Screens";
 import { Images, articles, argonTheme } from "./constants";
+import { StatusBar } from "expo-status-bar";
 
 // cache app images
 const assetImages = [
@@ -76,6 +77,7 @@ export default function App() {
     <NavigationContainer onReady={onLayoutRootView}>
       <GalioProvider theme={argonTheme}>
         <Block flex>
+          <StatusBar style="dark" />
           <Screens />
         </Block>
       </GalioProvider>

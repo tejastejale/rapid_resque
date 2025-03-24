@@ -7,6 +7,7 @@ import tw from "twrnc";
 import { useRoute } from "@react-navigation/native";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 function CustomDrawerContent({
   drawerPosition,
@@ -18,7 +19,6 @@ function CustomDrawerContent({
 }) {
   const route = state?.routes[state.index]?.name;
   const screens = ["Home", "Profile"];
-
   return (
     <Block
       style={styles.container}
@@ -56,6 +56,15 @@ function CustomDrawerContent({
               />
             );
           })}
+          <DrawerCustomItem
+            title={"Logout"}
+            key={"logout"}
+            navigation={navigation}
+            focused={route === "Logout"}
+
+            // navigation={navigation}
+            // focused={route === item}
+          />
           {/* <Block
             flex
             style={{ marginTop: 24, marginVertical: 8, paddingHorizontal: 8 }}

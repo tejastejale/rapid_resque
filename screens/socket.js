@@ -5,7 +5,7 @@ export const useWebSocket = (
   loc,
   setSocketData,
   setUpdatedLocation,
-  setOrderCompleted
+  setIsCompleted
 ) => {
   const socketRef = useRef(null);
   const [socketUrl, setSocketUrl] = useState(null);
@@ -36,12 +36,6 @@ export const useWebSocket = (
     fetchUserData();
   }, []);
 
-  const role = async () => {
-    const token = await AsyncStorage.getItem("token");
-    const parsedToken = JSON.parse(token);
-    console.log(parsedToken.data?.profile?.user_type);
-  };
-
   useEffect(() => {
     if (socketUrl) {
       console.log("Connecting...");
@@ -57,7 +51,7 @@ export const useWebSocket = (
         if (typeof event.data === "string") {
           const parsedData = JSON.parse(event.data);
           if (parsedData?.type === "order_completed_event") {
-            setSocketData(parsedData);
+            setIsCompleted(true);
           } else if ("driver" in parsedData) {
             setSocketData(parsedData);
           } else if (parsedData?.type === "location_update")
