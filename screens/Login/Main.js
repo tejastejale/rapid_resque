@@ -55,7 +55,7 @@ export default function MainScreen({ navigation }) {
 
   // Calculate dynamic font size
   const getResponsiveFontSize = (baseSize) => {
-    return Math.round((baseSize * width) / 375); // Assuming 375 is the base screen width (iPhone X)
+    return Math.round((baseSize * width) / 400); // Assuming 375 is the base screen width (iPhone X)
   };
 
   return (

@@ -70,6 +70,10 @@ export default function UserLogin({ navigation }) {
     return () => backHandler.remove(); // Cleanup the listener on unmount
   }, []);
 
+  const getResponsiveFontSize = (baseSize) => {
+    return Math.round((baseSize * width) / 400); // Assuming 375 is the base screen width (iPhone X)
+  };
+
   const handleChange = (name, value) => {
     let error = "";
 
@@ -241,22 +245,29 @@ export default function UserLogin({ navigation }) {
 
         <LinearGradient
           colors={["#e5e7eb", "#FFFFFF"]}
-          style={tw`flex flex-col h-[80%] justify-evenly bg-gray-200 w-full rounded-t-[50px] p-10 elevation-20`}
+          style={tw`flex flex-col h-[80%] justify-evenly bg-gray-200 w-full rounded-t-[50px] p-8 elevation-20`}
         >
           <View style={tw`flex `}>
-            <View style={tw`flex flex-row gap-2`}>
-              <Text style={tw`font-semibold italic text-2xl mb-2`}>
+            <View style={tw`flex flex-row gap-2 mb-2`}>
+              <Text
+                style={[
+                  tw`font-semibold italic text-2xl`,
+                  { fontSize: getResponsiveFontSize(22) },
+                ]}
+              >
                 Welcome to
               </Text>
               <MaskedView
                 style={{ height: "auto", width: 300 }}
                 maskElement={
-                  <View style={tw`flex items-start justify-start h-full`}>
+                  <View
+                    style={tw`flex items-start justify-start h-full mt-[2px]`}
+                  >
                     <Animated.Text
                       style={[
-                        tw`text-violet-600 italic font-semibold`,
+                        tw`text-violet-600 italic font-semibold `,
                         {
-                          fontSize: 24,
+                          fontSize: getResponsiveFontSize(22),
                           transform: [{ translateX: animatedValue }],
                         },
                       ]}
