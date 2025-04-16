@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "996596442651",
+    "project_id": "rapid-resque-11a3c",
+    "storage_bucket": "rapid-resque-11a3c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:996596442651:android:6e4134bee8ceb8f6ed3abe",
+        "android_client_info": {
+          "package_name": "com.tejas1324.argonfreereactnative"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgOUJ5nm7YVCqIQIBfgzFuQoLgx7JF8xA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

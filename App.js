@@ -13,6 +13,7 @@ enableScreens();
 import Screens from "./navigation/Screens";
 import { Images, articles, argonTheme } from "./constants";
 import { StatusBar } from "expo-status-bar";
+import { usePushNotifications } from "./components/pushToken";
 
 // cache app images
 const assetImages = [

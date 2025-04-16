@@ -21,12 +21,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons"; // For custom eye icon
 import ArButton from "../../components/Button";
 import * as Linking from "expo-linking";
+import { usePushNotifications } from "../../components/pushToken";
 const { width } = Dimensions.get("window");
 
 export default function Login({ navigation }) {
   const [formData, setFormData] = useState({ phone: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false); // State to toggle password visibility
+  const { expoPushToken, notification } = usePushNotifications();
   const animatedValue = useRef(new Animated.Value(-500)).current;
   const animatedValue2 = useRef(new Animated.Value(300)).current;
 
@@ -76,24 +78,29 @@ export default function Login({ navigation }) {
   };
 
   const handleLogin = async () => {
-    setLoading(true);
-    await AsyncStorage.clear();
-    try {
-      const body = {
-        phone_number: `+91${formData.phone}`,
-        password: formData.password,
-      };
-      const res = await makeLogin(body);
-      if (res.code === 200) {
-        showToasts("success", res.message);
-        navigation.navigate("Home");
-      } else {
-        showToasts("DANGER", res.data.errors[0] || "Something went wrong!");
+    if (expoPushToken) {
+      setLoading(true);
+      await AsyncStorage.clear();
+
+      try {
+        const body = {
+          phone_number: `+91${formData.phone}`,
+          password: formData.password,
+          device_id: expoPushToken.data,
+        };
+        const res = await makeLogin(body);
+        if (res.code === 200) {
+          navigation.navigate("Home");
+          showToasts("SUCCESS", res.message);
+        } else {
+          showToasts("DANGER", res.data.errors[0] || "Something went wrong!");
+        }
+      } catch (error) {
+        console.log(error);
+        showToasts("DANGER", "Something went wrong!");
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      showToasts("DANGER", "Something went wrong!");
-    } finally {
-      setLoading(false);
     }
   };
 

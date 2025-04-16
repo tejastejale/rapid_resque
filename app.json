@@ -31,7 +31,19 @@
       }
     },
     "android": {
-      "package": "com.tejas1324.argonfreereactnative"
-    }
+      "package": "com.tejas1324.argonfreereactnative",
+      "useNextNotificationsApi": true,
+      "googleServicesFile": "./android/app/google-services.json"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "default",
+          "sounds": ["./assets/alarm.mp3", "./assets/alarm.mp3"],
+          "enableBackgroundRemoteNotifications": true
+        }
+      ]
+    ]
   }
 }

@@ -85,7 +85,7 @@ class DrawerItem extends React.Component {
 
     try {
       const res = await makeLogout();
-      AsyncStorage.clear();
+      await AsyncStorage.clear();
       navigation.navigate("Login");
     } catch (error) {
       console.log(error);

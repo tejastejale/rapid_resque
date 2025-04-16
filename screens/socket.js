@@ -5,7 +5,8 @@ export const useWebSocket = (
   loc,
   setSocketData,
   setUpdatedLocation,
-  setIsCompleted
+  setIsCompleted,
+  socketData
 ) => {
   const socketRef = useRef(null);
   const [socketUrl, setSocketUrl] = useState(null);
@@ -23,7 +24,7 @@ export const useWebSocket = (
         const username = parsedToken?.data?.profile.username;
 
         if (userToken && username) {
-          const wsUrl = `ws://13.60.188.43/ws/user/${username}/?token=${userToken}`;
+          const wsUrl = `ws://16.170.204.90/ws/user/${username}/?token=${userToken}`;
           setSocketUrl(wsUrl);
         } else {
           console.error("Token or username missing!");
@@ -37,6 +38,14 @@ export const useWebSocket = (
   }, []);
 
   useEffect(() => {
+    let role;
+    const getRole = async () => {
+      const token = await AsyncStorage.getItem("token"); // Get token from AsyncStorage
+      const parsedToken = JSON.parse(token);
+      role = parsedToken;
+    };
+    getRole();
+
     if (socketUrl) {
       console.log("Connecting...");
       socketRef.current = new WebSocket(socketUrl);
@@ -46,21 +55,27 @@ export const useWebSocket = (
       };
 
       socketRef.current.onmessage = (event) => {
-        // console.log("Received:", JSON.stringify(event.data, null, 2));
-
+        const parsedData = JSON.parse(event.data);
+        // console.log("Received:", JSON.stringify(parsedData, null, 2));
         if (typeof event.data === "string") {
-          const parsedData = JSON.parse(event.data);
           if (parsedData?.type === "order_completed_event") {
             setIsCompleted(true);
           } else if ("driver" in parsedData) {
             setSocketData(parsedData);
           } else if (parsedData?.type === "location_update")
             setUpdatedLocation(parsedData);
-          else if (parsedData?.id)
+          else if (parsedData?.status === "ignored") {
+            if (Array.isArray(socketData)) {
+              setSocketData((prevData) => {
+                return prevData.filter((item) => item.id !== parsedData.id);
+              });
+            }
+          } else if (parsedData?.id) {
             setSocketData((prevData) => {
               if (!Array.isArray(prevData)) return [parsedData];
               return [...prevData, parsedData];
             });
+          }
         }
       };
 

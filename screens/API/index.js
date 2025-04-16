@@ -5,6 +5,8 @@ import {
   CANCLE_REQUEST,
   COMPLETE_REQUEST,
   DRIVER_REGISTER,
+  GET_CAR_REQUESTS,
+  GET_CURRENT_STATE,
   LOGIN,
   LOGOUT,
   REQUEST_CAR,
@@ -54,3 +56,7 @@ export const complete_request = (id) =>
 
 export const cancle_request = (id) =>
   API.post(`${CANCLE_REQUEST}/${id}/cancel/`);
+
+export const get_pending_reqs = () => API.get(`${GET_CAR_REQUESTS}`);
+
+export const get_current_state = () => API.get(`${GET_CURRENT_STATE}`);

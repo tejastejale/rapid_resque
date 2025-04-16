@@ -44,3 +44,21 @@ export const cancleRequest = async (id) => {
     return error;
   }
 };
+
+export const getPendingRequests = async () => {
+  try {
+    const res = await API.get_pending_reqs();
+    return res.data;
+  } catch (error) {
+    return error;
+  }
+};
+
+export const getCurrentRequest = async () => {
+  try {
+    const res = await API.get_current_state();
+    return res.data;
+  } catch (error) {
+    return error;
+  }
+};

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { use, useEffect, useRef, useState } from "react";
 import Dialog from "react-native-dialog";
 import {
   View,
@@ -46,6 +46,8 @@ import {
   acceptRequest,
   cancleRequest,
   completeRequest,
+  getCurrentRequest,
+  getPendingRequests,
   requestCar,
   requestData,
 } from "./API/actions/request";
@@ -56,6 +58,7 @@ import userPic from "../assets/imgs/user.png";
 import Compass from "./Widget/Compass";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { LinearGradient } from "expo-linear-gradient";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 Mapbox.setAccessToken(
   "pk.eyJ1IjoidGVqYXNjb2RlNDciLCJhIjoiY200d3pqMGh2MGtldzJwczgwMTZnbHc0dCJ9.KyxtwzKWPT9n1yDElo8HEQ"
@@ -137,7 +140,8 @@ const Home = () => {
     loc,
     setSocketData,
     setUpdatedLocation,
-    setIsCompleted
+    setIsCompleted,
+    socketData
   );
 
   useEffect(() => {
@@ -238,24 +242,44 @@ const Home = () => {
   }, [socketData]);
 
   useEffect(() => {
+    const saveToLocal = async () => {
+      try {
+        if (updatedLocation) {
+          await AsyncStorage.setItem(
+            "updatedLocation",
+            JSON.stringify(updatedLocation)
+          );
+        }
+      } catch (error) {
+        console.error("Error saving isRequested:", error);
+      }
+    };
+
+    saveToLocal();
+  }, [updatedLocation]);
+
+  useEffect(() => {
     const loadFromLocal = async () => {
       try {
-        const isRequestedStr = await AsyncStorage.getItem("isRequested");
-        const requestAcceptedStr = await AsyncStorage.getItem(
-          "requestAccepted"
+        // const isRequestedStr = await AsyncStorage.getItem("isRequested");
+        // const requestAcceptedStr = await AsyncStorage.getItem(
+        //   "requestAccepted"
+        // );
+        const updatedLocationStr = await AsyncStorage.getItem(
+          "updatedLocation"
         );
-        const selectedDataStr = await AsyncStorage.getItem("selectedData");
         const socketDataStr = await AsyncStorage.getItem("socketData");
+
         // console.log(socketDataStr);
         // Parse the string to boolean or keep as string based on your needs
-        setUiState((prev) => ({
-          ...prev,
-          isRequested: JSON.parse(isRequestedStr),
-        }));
-        // Directly parse to boolean
-        setRequestAccepted(JSON.parse(requestAcceptedStr));
+        // setUiState((prev) => ({
+        //   ...prev,
+        //   isRequested: JSON.parse(isRequestedStr),
+        // }));
+        // // Directly parse to boolean
+        // setRequestAccepted(JSON.parse(requestAcceptedStr));
 
-        setSelectedData(JSON.parse(selectedDataStr));
+        setUpdatedLocation(JSON.parse(updatedLocationStr));
 
         const temp = JSON.parse(socketDataStr);
         if (typeof temp === "object" && !Array.isArray(temp) && temp !== null) {
@@ -270,13 +294,66 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
+    const getState = async (type) => {
+      const currentState = await getCurrentRequest();
+      console.log(JSON.stringify(currentState, null, 2));
+      if (currentState?.code === 200) {
+        if (type === "customer") {
+          switch (currentState?.data?.user_state) {
+            case null:
+              clear();
+              break;
+            case "pending": {
+              setUiState((prev) => ({
+                ...prev,
+                isRequested: true,
+              }));
+            }
+            case "in_progress": {
+              setUiState((prev) => ({
+                ...prev,
+                isRequested: true,
+              }));
+              setRequestAccepted(true);
+              setSelectedData(currentState?.data?.requests);
+              break;
+            }
+            default:
+              return;
+          }
+        } else {
+          console.log("object");
+          switch (currentState?.data?.user_state) {
+            case null:
+              clear();
+              break;
+            case "completed": {
+              clear();
+              break;
+            }
+            case "in_progress": {
+              setUiState((prev) => ({
+                ...prev,
+                isRequested: true,
+              }));
+              setRequestAccepted(true);
+              setSelectedData(currentState?.data?.requests);
+              break;
+            }
+            default:
+              return;
+          }
+        }
+      }
+    };
     const getRole = async () => {
       const token = await AsyncStorage.getItem("token"); // Get token from AsyncStorage
       const parsedToken = JSON.parse(token);
+      getState(parsedToken.data?.profile?.user_type);
       setRole(parsedToken.data?.profile?.user_type);
     };
     getRole();
-  }, []);
+  }, [role]);
 
   useEffect(() => {
     requestPermission();
@@ -439,13 +516,29 @@ const Home = () => {
     }
   };
 
+  const parseVehicalName = (type) => {
+    switch (type) {
+      case "2":
+        return "Fire Brigade";
+      case "0":
+        return "Ambulance";
+      case "1":
+        return "Police";
+      default:
+        return type;
+    }
+  };
+
   const returnImageSource = (type) => {
     switch (type) {
       case "Fire Brigade":
+      case "2":
         return fire;
       case "Ambulance":
+      case "0":
         return Ambulance;
       case "Police":
+      case "1":
         return Police;
       default:
         return type;
@@ -453,13 +546,30 @@ const Home = () => {
   };
 
   const parseAdditionalData = (data) => {
-    if (typeof data === "string") {
-      const temp = JSON.parse(data?.data?.additional_details);
-      return temp?.display_name;
-    } else if (typeof data?.data?.additional_details === "string") {
-      const temp = JSON.parse(data.data?.additional_details);
-      return temp?.display_name;
-    } else return data?.data?.additional_details?.display_name;
+    try {
+      if (typeof data === "string") {
+        const temp = JSON.parse(data)?.data?.additional_details;
+        const parsed = typeof temp === "string" ? JSON.parse(temp) : temp;
+        if (parsed?.display_name) return parsed.display_name;
+        else {
+          const pendingParsed = JSON.parse(data);
+          return pendingParsed?.display_name || "Unknown Location";
+        }
+      } else if (typeof data?.data?.additional_details === "string") {
+        const temp = JSON.parse(data.data?.additional_details);
+        return temp?.display_name || "Unknown Location";
+      } else if (data?.data?.additional_details?.display_name) {
+        return data.data.additional_details.display_name;
+      } else if (typeof data?.additional_details === "string") {
+        const temp = JSON.parse(data.additional_details);
+        return temp?.display_name || "Unknown Location";
+      } else if (data?.display_name) return data.display_name;
+      else {
+        return data?.additional_details?.display_name || "Unknown Location";
+      }
+    } catch (error) {
+      return "Invalid Location Data";
+    }
   };
 
   const handleAccept = async (id) => {
@@ -511,10 +621,20 @@ const Home = () => {
   };
 
   const createRoute = async () => {
+    if (!requestAccepted) {
+      setRouteDirections({
+        routeThings: null,
+        routeTime: {},
+      });
+      return;
+    }
+
     const startCoords = `${loc[0]},${loc[1]}`;
     let endCoords;
-    if (selectedData)
+    if (selectedData?.data)
       endCoords = `${selectedData.data.location.lon},${selectedData.data.location.lat}`;
+    else if (selectedData)
+      endCoords = `${selectedData.longitude},${selectedData.latitude}`;
     else
       endCoords = `${updatedLocation?.longitude},${updatedLocation?.latitude}`;
 
@@ -536,7 +656,6 @@ const Home = () => {
       // Extract coordinates
       let coordinates = json.routes[0]?.geometry?.coordinates;
       if (coordinates?.length) {
-        // console.log("Route Coordinates:", coordinates);
         const routerFeature = makeRouterFeature([...coordinates]);
         setRouteDirections((prev) => ({ ...prev, routeThings: routerFeature }));
       } else {
@@ -553,6 +672,9 @@ const Home = () => {
       console.error("Error fetching route:", error);
     }
   };
+  useEffect(() => {
+    if (role === "customer") console.log(routeDirections.routeThings);
+  }, [routeDirections]);
 
   const processMapboxResponse = (response) => {
     if (!response || !response.routes || response.routes.length === 0) {
@@ -583,9 +705,8 @@ const Home = () => {
     try {
       const reqId = uiState.requestedData?.data?.id;
       const res = await cancleRequest(reqId);
-      if (res?.code === 200) {
-        setUiState((prev) => ({ ...prev, isRequested: false }));
-      } else alert("Something went wrong!!");
+      setUiState((prev) => ({ ...prev, isRequested: false }));
+      if (res?.code !== 200) alert("Something went wrong!!");
     } catch (error) {
       alert("Something went wrong!");
     }
@@ -607,14 +728,25 @@ const Home = () => {
         isRequested: "",
         requestedData: "",
       }));
-      setSelectedId(null);
-      setSelectedData(null);
-      setUpdatedLocation(null);
-      setRequestAccepted("");
       setRouteDirections({
         routeThings: null,
         routeTime: {},
       });
+      setSelectedId(null);
+      setSelectedData(null);
+      setUpdatedLocation(null);
+      setRequestAccepted("");
+      setIsCompleted(false);
+
+      try {
+        const pendingReqs = await getPendingRequests();
+
+        if (pendingReqs?.data?.length > 0 && pendingReqs?.code === 200) {
+          setSocketData(pendingReqs.data);
+        }
+      } catch (err) {
+        console.log("Failed to fetch pending requests:", err);
+      }
 
       console.log("All states reset to default values");
     } catch (error) {
@@ -628,6 +760,7 @@ const Home = () => {
       if (res?.code === 200) clear();
       else alert("Something went wrong!");
     } catch (error) {
+      console.log(error);
       alert("Something went wrong!!");
     }
   };
@@ -684,6 +817,8 @@ const Home = () => {
       </Animated.View>
       {loc && locData && uiState.showMap && (
         <MapView
+          id="map"
+          key={JSON.stringify(routeDirections)}
           style={tw`h-full w-full`}
           styleURL="mapbox://styles/mapbox/navigation-day-v1" // Change to night mode (dark theme)
           zoomEnabled
@@ -761,14 +896,16 @@ const Home = () => {
               </View>
             )}
           </PointAnnotation>
+
           {routeDirections?.routeThings && (
-            <ShapeSource id="line1" shape={routeDirections?.routeThings}>
+            <ShapeSource
+              id="route-shape"
+              shape={routeDirections?.routeThings}
+              onPress={() => console.log("Line clicked")}
+            >
               <LineLayer
-                id="routerLine01"
-                style={{
-                  lineColor: "#7f22fe",
-                  lineWidth: 10,
-                }}
+                id="route-line"
+                style={{ lineColor: "#7f22fe", lineWidth: 10 }}
               />
             </ShapeSource>
           )}
@@ -786,6 +923,7 @@ const Home = () => {
                 <View />
               </PointAnnotation>
             )}
+
           {updatedLocation?.type === "location_update" &&
             role === "customer" && (
               <PointAnnotation
@@ -802,8 +940,29 @@ const Home = () => {
               </PointAnnotation>
             )}
 
+          {selectedData &&
+            selectedData.latitude &&
+            selectedData?.longitude &&
+            requestAccepted && (
+              <PointAnnotation
+                id="driver2"
+                style={tw`h-10 w-10`}
+                coordinate={[selectedData.latitude, selectedData?.longitude]}
+              >
+                <View style={tw`h-10 w-10`}>
+                  <Icon
+                    name={"squared-plus"}
+                    size={30}
+                    family="Entypo"
+                    style={tw`text-red-500`}
+                  />
+                </View>
+              </PointAnnotation>
+            )}
+
           {selectedData?.data?.location?.lat &&
-            selectedData?.data?.location?.lon && (
+            selectedData?.data?.location?.lon &&
+            requestAccepted && (
               <PointAnnotation
                 id="driver2"
                 style={tw`h-10 w-10`}
@@ -833,393 +992,390 @@ const Home = () => {
           </Text>
         </View>
       )}
-      {role === "driver" && (
-        <BottomSheet
-          containerStyle={{ zIndex: 10 }}
-          ref={bottomSheetRef}
-          snapPoints={snapPoints}
-          enablePanDownToClose={false}
-          onChange={(e) => setUiState((prev) => ({ ...prev, sheetArrow: e }))}
-          backgroundStyle={tw`bg-gray-100 rounded-t-3xl`}
-          handleIndicatorStyle={tw`hidden`}
-          handleComponent={() => (
-            <View style={tw`items-center my-2`}>
-              <Icon
-                name={uiState.sheetArrow === 0 ? "chevron-up" : "chevron-down"}
-                size={30}
-                family="entypo"
-                style={tw`text-gray-500`}
-              />
-            </View>
-          )}
-        >
-          {requestAccepted ? (
-            <BottomSheetScrollView
-              style={tw`flex-1 px-4`}
-              contentContainerStyle={tw`pb-10`}
-              nestedScrollEnabled={true}
-              showsVerticalScrollIndicator={true}
-            >
-              {/* <TouchableOpacity
-                onPress={() => {
-                  clear();
-                }}
-                style={tw`bg-violet-600 p-3 py-3 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-center items-center`}
-              >
-                <Text style={tw`text-white`}>Cancle Request</Text>
-              </TouchableOpacity> */}
-              <View
-                style={tw`bg-white p-4 h-fit rounded-lg mb-3 shadow-md flex items-center`}
-              >
-                <View
-                  style={tw`w-full flex flex-row justify-between items-center pr-2`}
-                >
-                  <View style={tw`flex flex-row items-center `}>
-                    <View
-                      style={[
-                        { flexShrink: 1 },
-                        tw`flex w-full overflow-hidden`,
-                      ]}
-                    >
-                      <Text style={tw`text-sm text-gray-500`}>
-                        {parseAdditionalData(selectedData)}&nbsp;
-                        <Text style={tw`font-bold`}>
-                          ({routeDirections?.routeTime?.km} km)
-                        </Text>
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
 
-              <View
-                style={tw`bg-white p-4 h-fit rounded-lg mb-3 shadow-md flex items-center`}
+      <BottomSheet
+        containerStyle={{ zIndex: 100 }}
+        ref={bottomSheetRef}
+        enableDynamicSizing
+        snapPoints={snapPoints}
+        enablePanDownToClose={false}
+        backgroundStyle={tw`bg-gray-100 rounded-t-3xl`}
+        handleIndicatorStyle={tw`hidden`}
+        onChange={(e) => setUiState((prev) => ({ ...prev, sheetArrow: e }))}
+        handleComponent={() => (
+          <View style={tw`items-center my-2`}>
+            <Icon
+              name={uiState.sheetArrow === 0 ? "chevron-up" : "chevron-down"}
+              size={30}
+              family="entypo"
+              style={tw`text-gray-500`}
+            />
+          </View>
+        )}
+      >
+        {role === "driver" ? (
+          <>
+            {requestAccepted ? (
+              <BottomSheetScrollView
+                style={tw`flex-1 px-4`}
+                contentContainerStyle={tw`pb-10`}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
               >
-                <View
-                  style={tw`w-full flex flex-row justify-between items-center pr-2`}
+                <TouchableOpacity
+                  onPress={() => {
+                    clear();
+                  }}
+                  style={tw`bg-violet-600 p-3 py-3 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-center items-center`}
                 >
-                  <View style={tw`w-[90%] flex flex-row items-center`}>
-                    <View style={tw`flex w-full overflow-hidden`}>
-                      <Text style={tw`text-lg text-gray-500`}>
-                        {selectedData?.data?.user?.phone}
-                      </Text>
+                  <Text style={tw`text-white`}>Cancle Request</Text>
+                </TouchableOpacity>
+                <View
+                  style={tw`bg-white p-4 h-fit rounded-lg mb-3 shadow-md flex items-center`}
+                >
+                  <View
+                    style={tw`w-full flex flex-row justify-between items-center pr-2`}
+                  >
+                    <View style={tw`flex flex-row items-center `}>
+                      <View
+                        style={[
+                          { flexShrink: 1 },
+                          tw`flex w-full overflow-hidden`,
+                        ]}
+                      >
+                        <Text style={tw`text-sm text-gray-500`}>
+                          {parseAdditionalData(selectedData)}&nbsp;
+                          <Text style={tw`font-bold`}>
+                            ({routeDirections?.routeTime?.km} km)
+                          </Text>
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                  <Icon
-                    onTouchStart={() => {
-                      call(selectedData?.data?.user?.phone);
-                    }}
-                    name="phone"
-                    family="FontAwesome"
-                    size={40}
-                    style={tw`text-green-500 mr-2`}
-                  />
                 </View>
-              </View>
-            </BottomSheetScrollView>
-          ) : (
-            <BottomSheetScrollView
-              style={tw`flex-1 px-4`}
-              contentContainerStyle={tw`pb-10`}
-              nestedScrollEnabled={true}
-              showsVerticalScrollIndicator={true}
-            >
-              {socketData?.length > 0 ? (
-                socketData?.map((data, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => showDialog(data)}
-                    style={tw`bg-white p-3 py-1 h-fit rounded-lg mb-3 shadow-md flex flex-row items-center`}
+
+                <View
+                  style={tw`bg-white p-4 h-fit rounded-lg mb-3 shadow-md flex items-center`}
+                >
+                  <View
+                    style={tw`w-full flex flex-row justify-between items-center pr-2`}
                   >
-                    <View
-                      style={tw`w-full flex flex-row justify-between w-full items-center pr-2`}
-                    >
-                      <View style={tw`flex flex-row items-center `}>
-                        <Image
-                          source={returnImageSource(data.data?.request_type)}
-                          style={tw`w-20 h-20 mr-3`}
-                        />
-                        <View
-                          style={[
-                            { flexShrink: 1 },
-                            tw`flex w-full overflow-hidden`,
-                          ]}
-                        >
-                          <Text style={tw`text-lg font-bold`}>
-                            {data.data?.request_type} Needed
-                          </Text>
-                          <Text style={tw`text-sm text-gray-500`}>
-                            {parseAdditionalData(data)}
-                          </Text>
-                        </View>
+                    <View style={tw`w-[90%] flex flex-row items-center`}>
+                      <View style={tw`flex w-full overflow-hidden`}>
+                        <Text style={tw`text-lg text-gray-500`}>
+                          {selectedData?.data?.user?.phone ||
+                            selectedData?.user?.phone}
+                        </Text>
                       </View>
-                      {/* <Icon
+                    </View>
+                    <Icon
+                      onTouchStart={() => {
+                        // call(selectedData?.data?.user?.phone);
+                        clear();
+                      }}
+                      name="phone"
+                      family="FontAwesome"
+                      size={40}
+                      style={tw`text-green-500 mr-2`}
+                    />
+                  </View>
+                </View>
+              </BottomSheetScrollView>
+            ) : (
+              <BottomSheetScrollView
+                style={tw`flex-1 px-4`}
+                contentContainerStyle={tw`pb-10`}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
+              >
+                {socketData?.length > 0 ? (
+                  socketData?.map((item, index) => {
+                    const data = item?.data || item;
+                    const requestType = data.request_type;
+                    const additionalDetails = data.additional_details;
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        onPress={() => showDialog(item)}
+                        style={tw`bg-white p-3 py-1 h-fit rounded-lg mb-3 shadow-md flex flex-row items-center`}
+                      >
+                        <View
+                          style={tw`w-full flex flex-row justify-between w-full items-center pr-2`}
+                        >
+                          <View style={tw`flex flex-row items-center `}>
+                            <Image
+                              source={returnImageSource(requestType)}
+                              style={tw`w-20 h-20 mr-3`}
+                            />
+                            <View
+                              style={[
+                                { flexShrink: 1 },
+                                tw`flex w-full overflow-hidden`,
+                              ]}
+                            >
+                              <Text style={tw`text-lg font-bold`}>
+                                {parseVehicalName(requestType)} Needed
+                              </Text>
+                              <Text style={tw`text-sm text-gray-500`}>
+                                {parseAdditionalData(additionalDetails)}
+                              </Text>
+                            </View>
+                          </View>
+                          {/* <Icon
                       onTouchStart={() => call(data.data?.user?.phone)}
                       name="phone"
                       family="FontAwesome"
                       size={40}
                       style={tw`text-green-500 mr-2 w-[10%]`}
                     /> */}
-                    </View>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <View
-                  style={tw`bg-white p-3 py-1 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-between items-center`}
-                >
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
                   <View
-                    style={tw`flex flex-row justify-between w-full items-center`}
-                  >
-                    <View style={tw`flex flex-row items-center gap-3 py-2`}>
-                      <Icon
-                        name={"coffee"}
-                        size={35}
-                        family="FontAwesome"
-                        style={tw`text-orange-700`}
-                      />
-
-                      <View style={tw`flex w-[80%]`}>
-                        <Text style={tw`text-lg font-bold`}>
-                          No requests for now
-                        </Text>
-                        <Text style={tw`text-sm text-gray-500 w-fit break-all`}>
-                          Relax but hang tight, a request might come in any
-                          moment!
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              )}
-            </BottomSheetScrollView>
-          )}
-        </BottomSheet>
-      )}
-      {role === "customer" && (
-        <BottomSheet
-          containerStyle={{ zIndex: 100 }}
-          ref={bottomSheetRef}
-          enableDynamicSizing
-          snapPoints={snapPoints}
-          enablePanDownToClose={false}
-          backgroundStyle={tw`bg-gray-100 rounded-t-3xl`}
-          handleIndicatorStyle={tw`hidden`}
-          handleComponent={() => (
-            <View style={tw`items-center my-2`}>
-              <Icon
-                name={uiState.sheetArrow === 0 ? "chevron-up" : "chevron-down"}
-                size={30}
-                family="entypo"
-                style={tw`text-gray-500`}
-              />
-            </View>
-          )}
-        >
-          {uiState.isRequested ? (
-            <BottomSheetScrollView style={tw`flex-1 px-4`}>
-              {socketData?.type === "order_accepted_event" &&
-              "driver" in socketData ? (
-                <>
-                  <TouchableOpacity
-                    onPress={() => callCompleteRequest(socketData?.id)}
-                    style={tw`bg-violet-600 p-3 py-3 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-center items-center`}
-                  >
-                    <Text style={tw`text-white`}>Complete Order</Text>
-                  </TouchableOpacity>
-
-                  <View
-                    style={tw`w-full h-18 bg-white rounded-lg shadow-md mb-2`}
-                  >
-                    <View style={tw`flex flex-row items-center gap-2 h-full`}>
-                      <Image
-                        source={
-                          socketData?.driver?.profile_pic
-                            ? {
-                                uri: `${BASE}/${socketData?.driver?.profile_pic}`,
-                              }
-                            : userPic
-                        }
-                        style={tw`h-full w-20 rounded-l-lg`}
-                      />
-                      <View style={tw`flex h-full justify-center`}>
-                        <Text style={tw`font-sm text-[0.8rem] text-gray-600`}>
-                          {socketData?.driver?.name}
-                        </Text>
-                        <Text
-                          style={tw`font-sm text-[0.8rem] text-gray-600 gap-2`}
-                        >
-                          Reaching in&nbsp;
-                          {routeDirections?.routeTime?.min}min&nbsp;
-                          {routeDirections?.routeTime?.sec}sec
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View
-                    style={tw`bg-white p-4 h-fit rounded-lg mb-3 shadow-md flex items-center`}
+                    style={tw`bg-white p-3 py-1 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-between items-center`}
                   >
                     <View
-                      style={tw`w-full flex flex-row justify-between items-center pr-2`}
+                      style={tw`flex flex-row justify-between w-full items-center`}
                     >
-                      <View style={tw`w-[90%] flex flex-row items-center`}>
-                        <View style={tw`flex w-full overflow-hidden`}>
-                          <Text style={tw`text-lg text-gray-500`}>
-                            {socketData?.driver?.phone}
+                      <View style={tw`flex flex-row items-center gap-3 py-2`}>
+                        <Icon
+                          name={"coffee"}
+                          size={35}
+                          family="FontAwesome"
+                          style={tw`text-orange-700`}
+                        />
+
+                        <View style={tw`flex w-[80%]`}>
+                          <Text style={tw`text-lg font-bold`}>
+                            No requests for now
+                          </Text>
+                          <Text
+                            style={tw`text-sm text-gray-500 w-fit break-all`}
+                          >
+                            Relax but hang tight, a request might come in any
+                            moment!
                           </Text>
                         </View>
                       </View>
-                      <Icon
-                        onTouchStart={() => {
-                          call(socketData?.driver?.phone);
-                        }}
-                        name="phone"
-                        family="FontAwesome"
-                        size={40}
-                        style={tw`text-green-500 mr-2`}
-                      />
                     </View>
                   </View>
-                </>
-              ) : (
+                )}
+              </BottomSheetScrollView>
+            )}
+          </>
+        ) : (
+          <>
+            {uiState.isRequested ? (
+              <BottomSheetScrollView style={tw`flex-1 px-4`}>
+                {(socketData?.type === "order_accepted_event" &&
+                  "driver" in socketData) ||
+                selectedData ? (
+                  <>
+                    <TouchableOpacity
+                      onPress={() =>
+                        callCompleteRequest(socketData?.id || selectedData?.id)
+                      }
+                      style={tw`bg-violet-600 p-3 py-3 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-center items-center`}
+                    >
+                      <Text style={tw`text-white`}>Complete Order</Text>
+                    </TouchableOpacity>
+
+                    <View
+                      style={tw`w-full h-18 bg-white rounded-lg shadow-md mb-2`}
+                    >
+                      <View style={tw`flex flex-row items-center gap-2 h-full`}>
+                        <Image
+                          source={
+                            socketData?.driver?.profile_pic
+                              ? {
+                                  uri: `${BASE}/${socketData?.driver?.profile_pic}`,
+                                }
+                              : userPic
+                          }
+                          style={tw`h-full w-20 rounded-l-lg`}
+                        />
+                        <View style={tw`flex h-full justify-center`}>
+                          <Text style={tw`font-sm text-[0.8rem] text-gray-600`}>
+                            {socketData?.driver?.name}
+                          </Text>
+                          <Text
+                            style={tw`font-sm text-[0.8rem] text-gray-600 gap-2`}
+                          >
+                            Reaching in&nbsp;
+                            {routeDirections?.routeTime?.min}min&nbsp;
+                            {routeDirections?.routeTime?.sec}sec
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View
+                      style={tw`bg-white p-4 h-fit rounded-lg mb-3 shadow-md flex items-center`}
+                    >
+                      <View
+                        style={tw`w-full flex flex-row justify-between items-center pr-2`}
+                      >
+                        <View style={tw`w-[90%] flex flex-row items-center`}>
+                          <View style={tw`flex w-full overflow-hidden`}>
+                            <Text style={tw`text-lg text-gray-500`}>
+                              {socketData?.driver?.phone}
+                            </Text>
+                          </View>
+                        </View>
+                        <Icon
+                          onTouchStart={() => {
+                            call(socketData?.driver?.phone);
+                          }}
+                          name="phone"
+                          family="FontAwesome"
+                          size={40}
+                          style={tw`text-green-500 mr-2`}
+                        />
+                      </View>
+                    </View>
+                  </>
+                ) : (
+                  <ScrollView
+                    style={tw`flex-1`}
+                    contentContainerStyle={tw`pb-10`}
+                    nestedScrollEnabled={true}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <Text style={tw`text-lg font-medium text-center mb-2`}>
+                      Finding the nearest driver
+                    </Text>
+                    <View
+                      style={tw`bg-white active:bg-red-400 p-3 py-2 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-center items-center overflow-hidden`}
+                    >
+                      <View
+                        style={tw`flex flex-row justify-between items-center`}
+                      >
+                        <View style={tw`w-1/3 bg-violet-600 h-[2px]`} />
+                        <RadarPing />
+                        <View style={tw`w-1/3 bg-violet-600 h-[2px]`} />
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => cancleCarRequest()}
+                      style={tw`bg-violet-600 p-3 py-3 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-center items-center`}
+                    >
+                      <Text style={tw`text-white`}>Cancle Request</Text>
+                    </TouchableOpacity>
+                    <View style={tw`flex gap-3 text-md`}>
+                      <View
+                        style={tw`bg-white p-3 rounded-lg h-fit shadow-md flex flex-row justify-between items-center`}
+                      >
+                        <View style={tw`flex flex-row items-center`}>
+                          <View style={tw`flex`}>
+                            <Text style={tw`text-lg font-bold`}>
+                              How this works
+                            </Text>
+                            <Text style={tw`text-sm text-gray-500`}>
+                              This sends your request to all the available
+                              drivers and when they accept the request you both
+                              can be with each other as soon as possible
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                      <View
+                        style={tw`bg-white p-3 rounded-lg mb-3 h-fit shadow-md flex flex-row justify-between items-center`}
+                      >
+                        <View style={tw`flex flex-row items-center`}>
+                          <View style={tw`flex`}>
+                            <Text style={tw`text-lg font-bold`}>Note</Text>
+                            <Text style={tw`text-sm text-gray-500`}>
+                              We don't know how much time this could take
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  </ScrollView>
+                )}
+              </BottomSheetScrollView>
+            ) : (
+              <BottomSheetScrollView style={tw`flex-1 px-4`}>
                 <ScrollView
                   style={tw`flex-1`}
                   contentContainerStyle={tw`pb-10`}
                   nestedScrollEnabled={true}
                   showsVerticalScrollIndicator={false}
                 >
-                  <Text style={tw`text-lg font-medium text-center mb-2`}>
-                    Finding the nearest driver
-                  </Text>
-                  <View
-                    style={tw`bg-white active:bg-red-400 p-3 py-2 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-center items-center overflow-hidden`}
-                  >
-                    <View
-                      style={tw`flex flex-row justify-between items-center`}
-                    >
-                      <View style={tw`w-1/3 bg-violet-600 h-[2px]`} />
-                      <RadarPing />
-                      <View style={tw`w-1/3 bg-violet-600 h-[2px]`} />
-                    </View>
-                  </View>
                   <TouchableOpacity
-                    onPress={() => cancleCarRequest()}
-                    style={tw`bg-violet-600 p-3 py-3 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-center items-center`}
+                    onPress={() => call("108")}
+                    style={tw`bg-white active:bg-red-400 p-3 py-1 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-between items-center`}
                   >
-                    <Text style={tw`text-white`}>Cancle Request</Text>
+                    <View style={tw`flex flex-row items-center gap-2 py-2`}>
+                      <View>
+                        <Icon
+                          name="phone"
+                          family="FontAwesome"
+                          size={40}
+                          style={tw`text-green-500 mr-1`}
+                        />
+                      </View>
+                      <View style={tw`flex`}>
+                        <Text style={tw`text-lg font-bold`}>Call 108</Text>
+                        <Text style={tw`text-sm text-gray-500 w-fit`}>
+                          Call to emergency helpline
+                        </Text>
+                      </View>
+                    </View>
                   </TouchableOpacity>
-                  <View style={tw`flex gap-3 text-md`}>
-                    <View
-                      style={tw`bg-white p-3 rounded-lg h-fit shadow-md flex flex-row justify-between items-center`}
-                    >
-                      <View style={tw`flex flex-row items-center`}>
-                        <View style={tw`flex`}>
-                          <Text style={tw`text-lg font-bold`}>
-                            How this works
-                          </Text>
-                          <Text style={tw`text-sm text-gray-500`}>
-                            This sends your request to all the available drivers
-                            and when they accept the request you both can be
-                            with each other as soon as possible
-                          </Text>
-                        </View>
+
+                  <TouchableOpacity
+                    onPress={() => handleRequest(0)}
+                    style={tw`bg-white p-3 py-1 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-between items-center`}
+                  >
+                    <View style={tw`flex flex-row items-center`}>
+                      <Image source={Ambulance} style={tw`w-16 h-20 mr-5`} />
+                      <View style={tw`flex`}>
+                        <Text style={tw`text-lg font-bold`}>Ambulance</Text>
+                        <Text style={tw`text-sm text-gray-500`}>
+                          Notify nearest ambulances
+                        </Text>
                       </View>
                     </View>
-                    <View
-                      style={tw`bg-white p-3 rounded-lg mb-3 h-fit shadow-md flex flex-row justify-between items-center`}
-                    >
-                      <View style={tw`flex flex-row items-center`}>
-                        <View style={tw`flex`}>
-                          <Text style={tw`text-lg font-bold`}>Note</Text>
-                          <Text style={tw`text-sm text-gray-500`}>
-                            We don't know how much time this could take
-                          </Text>
-                        </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => handleRequest(1)}
+                    style={tw`bg-white p-3 rounded-lg mb-3 h-fit shadow-md flex flex-row justify-between items-center`}
+                  >
+                    <View style={tw`flex flex-row items-center`}>
+                      <Image source={fire} style={tw`w-16 h-16 mr-5`} />
+                      <View style={tw`flex`}>
+                        <Text style={tw`text-lg font-bold`}>Fire Brigade</Text>
+                        <Text style={tw`text-sm text-gray-500`}>
+                          Notify nearest fire brigade
+                        </Text>
                       </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => handleRequest(2)}
+                    style={tw`bg-white p-3 rounded-lg h-fit shadow-md flex flex-row justify-between items-center`}
+                  >
+                    <View style={tw`flex flex-row items-center`}>
+                      <Image source={Police} style={tw`w-14 h-16 mr-5`} />
+                      <View style={tw`flex`}>
+                        <Text style={tw`text-lg font-bold`}>Police</Text>
+                        <Text style={tw`text-sm text-gray-500`}>
+                          Notify nearest police
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
                 </ScrollView>
-              )}
-            </BottomSheetScrollView>
-          ) : (
-            <BottomSheetScrollView style={tw`flex-1 px-4`}>
-              <ScrollView
-                style={tw`flex-1`}
-                contentContainerStyle={tw`pb-10`}
-                nestedScrollEnabled={true}
-                showsVerticalScrollIndicator={false}
-              >
-                <TouchableOpacity
-                  onPress={() => call("108")}
-                  style={tw`bg-white active:bg-red-400 p-3 py-1 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-between items-center`}
-                >
-                  <View style={tw`flex flex-row items-center gap-2 py-2`}>
-                    <View>
-                      <Icon
-                        name="phone"
-                        family="FontAwesome"
-                        size={40}
-                        style={tw`text-green-500 mr-1`}
-                      />
-                    </View>
-                    <View style={tw`flex`}>
-                      <Text style={tw`text-lg font-bold`}>Call 108</Text>
-                      <Text style={tw`text-sm text-gray-500 w-fit`}>
-                        Call to emergency helpline
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => handleRequest(0)}
-                  style={tw`bg-white p-3 py-1 h-fit rounded-lg mb-3 shadow-md flex flex-row justify-between items-center`}
-                >
-                  <View style={tw`flex flex-row items-center`}>
-                    <Image source={Ambulance} style={tw`w-16 h-20 mr-5`} />
-                    <View style={tw`flex`}>
-                      <Text style={tw`text-lg font-bold`}>Ambulance</Text>
-                      <Text style={tw`text-sm text-gray-500`}>
-                        Notify nearest ambulances
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => handleRequest(1)}
-                  style={tw`bg-white p-3 rounded-lg mb-3 h-fit shadow-md flex flex-row justify-between items-center`}
-                >
-                  <View style={tw`flex flex-row items-center`}>
-                    <Image source={fire} style={tw`w-16 h-16 mr-5`} />
-                    <View style={tw`flex`}>
-                      <Text style={tw`text-lg font-bold`}>Fire Brigade</Text>
-                      <Text style={tw`text-sm text-gray-500`}>
-                        Notify nearest fire brigade
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => handleRequest(2)}
-                  style={tw`bg-white p-3 rounded-lg h-fit shadow-md flex flex-row justify-between items-center`}
-                >
-                  <View style={tw`flex flex-row items-center`}>
-                    <Image source={Police} style={tw`w-14 h-16 mr-5`} />
-                    <View style={tw`flex`}>
-                      <Text style={tw`text-lg font-bold`}>Police</Text>
-                      <Text style={tw`text-sm text-gray-500`}>
-                        Notify nearest police
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              </ScrollView>
-            </BottomSheetScrollView>
-          )}
-        </BottomSheet>
-      )}
+              </BottomSheetScrollView>
+            )}
+          </>
+        )}
+      </BottomSheet>
     </Block>
   );
 };
