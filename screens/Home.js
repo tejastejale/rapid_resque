@@ -296,7 +296,6 @@ const Home = () => {
   useEffect(() => {
     const getState = async (type) => {
       const currentState = await getCurrentRequest();
-      console.log(JSON.stringify(currentState, null, 2));
       if (currentState?.code === 200) {
         if (type === "customer") {
           switch (currentState?.data?.user_state) {
@@ -633,10 +632,12 @@ const Home = () => {
     let endCoords;
     if (selectedData?.data)
       endCoords = `${selectedData.data.location.lon},${selectedData.data.location.lat}`;
-    else if (selectedData)
-      endCoords = `${selectedData.longitude},${selectedData.latitude}`;
+    // else if (selectedData)
+    //   endCoords = `${selectedData.longitude},${selectedData.latitude}`;
     else
-      endCoords = `${updatedLocation?.longitude},${updatedLocation?.latitude}`;
+      endCoords = `${updatedLocation?.longitude || selectedData.longitude},${
+        updatedLocation?.latitude || selectedData.latitude
+      }`;
 
     const geometries = "geojson";
     const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${startCoords};${endCoords}?alternatives=true&geometries=${geometries}&steps=true&banner_instructions=true&overview=full&voice_instructions=true&access_token=pk.eyJ1IjoidGVqYXNjb2RlNDciLCJhIjoiY200d3pqMGh2MGtldzJwczgwMTZnbHc0dCJ9.KyxtwzKWPT9n1yDElo8HEQ`;
@@ -672,9 +673,9 @@ const Home = () => {
       console.error("Error fetching route:", error);
     }
   };
-  useEffect(() => {
-    if (role === "customer") console.log(routeDirections.routeThings);
-  }, [routeDirections]);
+  // useEffect(() => {
+  //   if (role === "customer") console.log(routeDirections.routeThings);
+  // }, [routeDirections]);
 
   const processMapboxResponse = (response) => {
     if (!response || !response.routes || response.routes.length === 0) {
@@ -818,7 +819,6 @@ const Home = () => {
       {loc && locData && uiState.showMap && (
         <MapView
           id="map"
-          key={JSON.stringify(routeDirections)}
           style={tw`h-full w-full`}
           styleURL="mapbox://styles/mapbox/navigation-day-v1" // Change to night mode (dark theme)
           zoomEnabled
@@ -924,21 +924,20 @@ const Home = () => {
               </PointAnnotation>
             )}
 
-          {updatedLocation?.type === "location_update" &&
-            role === "customer" && (
-              <PointAnnotation
-                id="driver_update"
-                style={tw`h-10 w-10`}
-                coordinate={[
-                  updatedLocation?.longitude,
-                  updatedLocation?.latitude,
-                ]}
-              >
-                <View>
-                  <Image source={car} style={tw`h-10 w-10`} />
-                </View>
-              </PointAnnotation>
-            )}
+          {updatedLocation && role === "customer" && (
+            <PointAnnotation
+              id="driver_update"
+              style={tw`h-10 w-10`}
+              coordinate={[
+                updatedLocation?.longitude,
+                updatedLocation?.latitude,
+              ]}
+            >
+              <View>
+                <Image source={car} style={tw`h-10 w-10`} />
+              </View>
+            </PointAnnotation>
+          )}
 
           {selectedData &&
             selectedData.latitude &&
