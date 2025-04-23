@@ -92,7 +92,7 @@ function HomeStack(props) {
     >
       <Stack.Screen
         name="Home"
-        component={Home}
+        // component={Home}
         options={{
           header: ({ navigation, scene }) => (
             <Header
@@ -105,7 +105,9 @@ function HomeStack(props) {
           ),
           cardStyle: { backgroundColor: "#F8F9FE" },
         }}
-      />
+      >
+        {() => <Home key={Date.now()} />}
+      </Stack.Screen>
       <Stack.Screen
         name="Pro"
         component={Pro}

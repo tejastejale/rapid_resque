@@ -101,6 +101,7 @@ const calculateAdaptiveZoom = () => {
 };
 
 const Home = () => {
+  const map = useRef();
   const [uiState, setUiState] = useState({
     visible: false, // Dialog visibility
     isMapLoading: true, // Map loading indicator
@@ -207,19 +208,19 @@ const Home = () => {
   useEffect(() => {
     const saveToLocal = async () => {
       try {
-        if (uiState.isRequested !== "") {
+        if (uiState.requestedData !== "")
           await AsyncStorage.setItem(
-            "isRequested",
-            JSON.stringify(uiState.isRequested)
+            "requestedData",
+            JSON.stringify(uiState.requestedData)
           );
-        }
+        else await AsyncStorage.setItem("uiState", JSON.stringify(uiState));
       } catch (error) {
         console.error("Error saving isRequested:", error);
       }
     };
 
     saveToLocal();
-  }, [uiState.isRequested]);
+  }, [uiState]);
 
   useEffect(() => {
     const saveToLocal = async () => {
@@ -261,26 +262,32 @@ const Home = () => {
   useEffect(() => {
     const loadFromLocal = async () => {
       try {
-        // const isRequestedStr = await AsyncStorage.getItem("isRequested");
-        // const requestAcceptedStr = await AsyncStorage.getItem(
-        //   "requestAccepted"
+        try {
+          const pendingReqs = await getPendingRequests();
+
+          if (pendingReqs?.data?.length > 0 && pendingReqs?.code === 200) {
+            setSocketData(pendingReqs.data);
+          }
+        } catch (err) {
+          console.log("Failed to fetch pending requests:", err);
+        }
+
+        // const updatedLocationStr = await AsyncStorage.getItem(
+        //   "updatedLocation"
         // );
-        const updatedLocationStr = await AsyncStorage.getItem(
-          "updatedLocation"
-        );
+
         const socketDataStr = await AsyncStorage.getItem("socketData");
 
-        // console.log(socketDataStr);
-        // Parse the string to boolean or keep as string based on your needs
-        // setUiState((prev) => ({
-        //   ...prev,
-        //   isRequested: JSON.parse(isRequestedStr),
-        // }));
-        // // Directly parse to boolean
-        // setRequestAccepted(JSON.parse(requestAcceptedStr));
+        const uiStateStr = await AsyncStorage.getItem("uiState");
 
-        setUpdatedLocation(JSON.parse(updatedLocationStr));
+        // setUpdatedLocation(JSON.parse(updatedLocationStr));
+        setUiState(JSON.parse(uiStateStr));
 
+        const requestedDataStr = await AsyncStorage.getItem("requestedData");
+        setUiState((prev) => ({
+          ...prev,
+          requestedData: JSON.parse(requestedDataStr),
+        }));
         const temp = JSON.parse(socketDataStr);
         if (typeof temp === "object" && !Array.isArray(temp) && temp !== null) {
           setSocketData(temp);
@@ -295,61 +302,68 @@ const Home = () => {
 
   useEffect(() => {
     const getState = async (type) => {
-      const currentState = await getCurrentRequest();
-      if (currentState?.code === 200) {
-        if (type === "customer") {
-          switch (currentState?.data?.user_state) {
-            case null:
-              clear();
-              break;
-            case "pending": {
-              setUiState((prev) => ({
-                ...prev,
-                isRequested: true,
-              }));
+      try {
+        const currentState = await getCurrentRequest();
+        console.log(currentState, "jk");
+        // console.log(currentState?.data?.user_state);
+        if (currentState?.code === 200) {
+          if (type === "customer") {
+            switch (currentState?.data?.user_state) {
+              case null:
+                clear();
+                break;
+              case "pending": {
+                setUiState((prev) => ({
+                  ...prev,
+                  isRequested: true,
+                }));
+                break;
+              }
+              case "in_progress": {
+                setUiState((prev) => ({
+                  ...prev,
+                  isRequested: true,
+                }));
+                setRequestAccepted(true);
+                setSelectedData(currentState?.data?.requests);
+                break;
+              }
+              default:
+                return;
             }
-            case "in_progress": {
-              setUiState((prev) => ({
-                ...prev,
-                isRequested: true,
-              }));
-              setRequestAccepted(true);
-              setSelectedData(currentState?.data?.requests);
-              break;
+          } else {
+            switch (currentState?.data?.user_state) {
+              case null:
+                clear();
+                break;
+              case "completed": {
+                clear();
+                break;
+              }
+              case "in_progress": {
+                setUiState((prev) => ({
+                  ...prev,
+                  isRequested: true,
+                }));
+                setRequestAccepted(true);
+                setSelectedData(currentState?.data?.requests);
+                break;
+              }
+              default:
+                return;
             }
-            default:
-              return;
-          }
-        } else {
-          console.log("object");
-          switch (currentState?.data?.user_state) {
-            case null:
-              clear();
-              break;
-            case "completed": {
-              clear();
-              break;
-            }
-            case "in_progress": {
-              setUiState((prev) => ({
-                ...prev,
-                isRequested: true,
-              }));
-              setRequestAccepted(true);
-              setSelectedData(currentState?.data?.requests);
-              break;
-            }
-            default:
-              return;
           }
         }
+      } catch (error) {
+        console.log(error);
       }
     };
     const getRole = async () => {
       const token = await AsyncStorage.getItem("token"); // Get token from AsyncStorage
       const parsedToken = JSON.parse(token);
-      getState(parsedToken.data?.profile?.user_type);
+      console.log(parsedToken.data?.profile?.user_type);
       setRole(parsedToken.data?.profile?.user_type);
+      getState(parsedToken.data?.profile?.user_type);
     };
     getRole();
   }, [role]);
@@ -464,6 +478,7 @@ const Home = () => {
         alert("You must grant location permission for tracking!");
       }
     } catch (error) {
+      setIsMapLoading(false);
       setUiState((prev) => ({ ...prev, showMap: false }));
 
       console.error("Error requesting permissions or getting location:", error);
@@ -591,6 +606,10 @@ const Home = () => {
     setUiState((prev) => ({ ...prev, visible: true }));
   };
 
+  useEffect(() => {
+    console.log(selectedData);
+  }, [selectedData]);
+
   const handleCancel = () => {
     setUiState((prev) => ({ ...prev, visible: false }));
   };
@@ -620,16 +639,17 @@ const Home = () => {
   };
 
   const createRoute = async () => {
-    if (!requestAccepted) {
-      setRouteDirections({
-        routeThings: null,
-        routeTime: {},
-      });
-      return;
-    }
+    // if (!requestAccepted) {
+    //   setRouteDirections({
+    //     routeThings: null,
+    //     routeTime: {},
+    //   });
+    //   return;
+    // }
 
     const startCoords = `${loc[0]},${loc[1]}`;
     let endCoords;
+
     if (selectedData?.data)
       endCoords = `${selectedData.data.location.lon},${selectedData.data.location.lat}`;
     // else if (selectedData)
@@ -673,9 +693,6 @@ const Home = () => {
       console.error("Error fetching route:", error);
     }
   };
-  // useEffect(() => {
-  //   if (role === "customer") console.log(routeDirections.routeThings);
-  // }, [routeDirections]);
 
   const processMapboxResponse = (response) => {
     if (!response || !response.routes || response.routes.length === 0) {
@@ -706,7 +723,11 @@ const Home = () => {
     try {
       const reqId = uiState.requestedData?.data?.id;
       const res = await cancleRequest(reqId);
-      setUiState((prev) => ({ ...prev, isRequested: false }));
+      setUiState((prev) => ({
+        ...prev,
+        isRequested: false,
+        requestedData: "",
+      }));
       if (res?.code !== 200) alert("Something went wrong!!");
     } catch (error) {
       alert("Something went wrong!");
@@ -715,12 +736,19 @@ const Home = () => {
 
   const clear = async () => {
     try {
+      // map.removeLayer("route-line");
+      // map.removeSource("route-shape");
+
       // Clear AsyncStorage items
       await AsyncStorage.removeItem("selectedData");
       await AsyncStorage.removeItem("requestAccepted");
       await AsyncStorage.removeItem("isRequested");
       await AsyncStorage.removeItem("socketData");
 
+      setRouteDirections({
+        routeThings: null,
+        routeTime: {},
+      });
       setSocketData([]);
       // setLocData(null);
       // setLoc(null);
@@ -729,10 +757,6 @@ const Home = () => {
         isRequested: "",
         requestedData: "",
       }));
-      setRouteDirections({
-        routeThings: null,
-        routeTime: {},
-      });
       setSelectedId(null);
       setSelectedData(null);
       setUpdatedLocation(null);
@@ -818,6 +842,7 @@ const Home = () => {
       </Animated.View>
       {loc && locData && uiState.showMap && (
         <MapView
+          ref={map}
           id="map"
           style={tw`h-full w-full`}
           styleURL="mapbox://styles/mapbox/navigation-day-v1" // Change to night mode (dark theme)
@@ -825,7 +850,9 @@ const Home = () => {
           rotateEnabled
           onDidFinishLoadingStyle={handleMapLoad}
           onMapLoadingError={() =>
-            alert("Something went wrong while loading the map!")
+            alert(
+              "Something went wrong while loading the map! Please restart the app!!"
+            )
           }
           onMapIdle={(region) => {
             setCameraProps({
@@ -896,20 +923,24 @@ const Home = () => {
               </View>
             )}
           </PointAnnotation>
-
-          {routeDirections?.routeThings && (
-            <ShapeSource
-              id="route-shape"
-              shape={routeDirections?.routeThings}
-              onPress={() => console.log("Line clicked")}
-            >
-              <LineLayer
-                id="route-line"
-                style={{ lineColor: "#7f22fe", lineWidth: 10 }}
-              />
-            </ShapeSource>
-          )}
-
+          <>
+            {routeDirections?.routeThings &&
+            routeDirections.routeThings.features &&
+            routeDirections.routeThings.features.length > 0 ? (
+              <ShapeSource
+                id="route-shape"
+                shape={routeDirections?.routeThings}
+                onPress={() => console.log("Line clicked")}
+              >
+                <LineLayer
+                  id="route-line"
+                  style={{ lineColor: "#7f22fe", lineWidth: 10 }}
+                />
+              </ShapeSource>
+            ) : (
+              <></>
+            )}
+          </>
           {socketData?.type === "order_accepted_event" &&
             "driver" in socketData && (
               <PointAnnotation
@@ -940,7 +971,7 @@ const Home = () => {
           )}
 
           {selectedData &&
-            selectedData.latitude &&
+            selectedData?.latitude &&
             selectedData?.longitude &&
             requestAccepted && (
               <PointAnnotation
@@ -1000,7 +1031,9 @@ const Home = () => {
         enablePanDownToClose={false}
         backgroundStyle={tw`bg-gray-100 rounded-t-3xl`}
         handleIndicatorStyle={tw`hidden`}
-        onChange={(e) => setUiState((prev) => ({ ...prev, sheetArrow: e }))}
+        onChange={(e) => {
+          setUiState((prev) => ({ ...prev, sheetArrow: e }));
+        }}
         handleComponent={() => (
           <View style={tw`items-center my-2`}>
             <Icon

@@ -3,8 +3,6 @@ import { useState, useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
-import { initializeApp } from "firebase/app";
-import firebase from "firebase/compat/app";
 
 export const usePushNotifications = () => {
   Notifications.setNotificationHandler({
@@ -12,7 +10,6 @@ export const usePushNotifications = () => {
       shouldPlaySound: true,
       shouldShowAlert: true,
       shouldSetBadge: true,
-      priority: "hight",
     }),
   });
 
@@ -54,7 +51,7 @@ export const usePushNotifications = () => {
         lightColor: "#FF231F7C",
       });
     }
-
+    console.log(token);
     return token;
   }
 

@@ -56,7 +56,7 @@ export const useWebSocket = (
 
       socketRef.current.onmessage = (event) => {
         const parsedData = JSON.parse(event.data);
-        // console.log("Received:", JSON.stringify(parsedData, null, 2));
+        console.log("Received:", JSON.stringify(parsedData, null, 2));
         if (typeof event.data === "string") {
           if (parsedData?.type === "order_completed_event") {
             setIsCompleted(true);

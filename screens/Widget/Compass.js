@@ -6,57 +6,58 @@ import {
   TouchableWithoutFeedback,
   Image,
 } from "react-native";
-import * as Location from "expo-location";
 import { Magnetometer } from "expo-sensors";
+import compass from "../../assets/imgs/compass.png";
 
 const Compass = ({ onPress }) => {
-  // const [heading, setHeading] = useState(0);
   const rotateValue = useRef(new Animated.Value(0)).current;
-  const scaleValue = useRef(new Animated.Value(1)).current; // Scale animation
-  const [has, setHas] = useState(0);
+  const scaleValue = useRef(new Animated.Value(1)).current;
+  const [hasSensor, setHasSensor] = useState(false);
 
   useEffect(() => {
     checkMagnetometer();
+    return () => {
+      Magnetometer.removeAllListeners(); // Clean up listener on unmount
+    };
   }, []);
 
   const checkMagnetometer = async () => {
-    const magnetometerAvailable = await Magnetometer.isAvailableAsync();
-    setHas(magnetometerAvailable);
-    if (magnetometerAvailable) {
+    const isAvailable = await Magnetometer.isAvailableAsync();
+    setHasSensor(isAvailable);
+    if (isAvailable) {
       startMagnetometer();
     }
   };
 
   const startMagnetometer = () => {
     Magnetometer.addListener((data) => {
-      let angle = Math.atan2(data.y, data.x) * (160 / Math.PI);
+      let angle = Math.atan2(data.y, data.x) * (180 / Math.PI);
       if (angle < 0) angle += 360;
-      // setHeading(angle);
-      animateCompass(angle);
-    });
 
-    return () => Magnetometer.removeAllListeners();
+      // Offset by 90 degrees to point north correctly
+      const correctedAngle = angle - 90;
+      animateCompass(-correctedAngle);
+    });
   };
 
-  const animateCompass = (newHeading) => {
-    Animated.spring(rotateValue, {
-      toValue: newHeading,
-      tension: 5,
-      friction: 5,
+  const animateCompass = (heading) => {
+    Animated.timing(rotateValue, {
+      toValue: heading,
+      duration: 200,
       useNativeDriver: false,
     }).start();
   };
 
   const handlePressIn = () => {
     Animated.spring(scaleValue, {
-      toValue: 0.8, // Scale up on press
+      toValue: 0.9,
       useNativeDriver: false,
     }).start();
   };
 
   const handlePressOut = () => {
     Animated.spring(scaleValue, {
-      toValue: 1, // Scale back to normal
+      toValue: 1,
       useNativeDriver: false,
     }).start();
   };
@@ -65,63 +66,48 @@ const Compass = ({ onPress }) => {
     transform: [
       {
         rotate: rotateValue.interpolate({
-          inputRange: [0, 360],
-          outputRange: ["0deg", "360deg"],
+          inputRange: [-360, 0, 360],
+          outputRange: ["-360deg", "0deg", "360deg"],
         }),
       },
       { scale: scaleValue },
     ],
   };
 
-  return (
-    <>
-      {has ? (
-        <View style={styles.container}>
-          <TouchableWithoutFeedback
-            onPress={onPress}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-          >
-            <Animated.View style={[styles.compassContainer, rotateStyle]}>
-              <Image
-                source={{
-                  uri: "https://media.geeksforgeeks.org/wp-content/uploads/20240122153821/compass.png",
-                }}
-                style={styles.compassImage}
-              />
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </View>
-      ) : null}
-    </>
-  );
+  return hasSensor ? (
+    <View style={styles.container}>
+      <TouchableWithoutFeedback
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      >
+        <Animated.View style={[styles.compassContainer, rotateStyle]}>
+          <Image source={compass} style={styles.compassImage} />
+        </Animated.View>
+      </TouchableWithoutFeedback>
+    </View>
+  ) : null;
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 60,
   },
   compassContainer: {
-    width: "fit-content",
-    height: "fit-content",
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "white",
     borderRadius: 60,
+    padding: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
-    // elevation: 5,
-    padding: 5,
   },
   compassImage: {
-    width: 80,
-    height: 80,
-    backgroundColor: "white",
+    width: 50,
+    height: 50,
     borderRadius: 60,
   },
 });

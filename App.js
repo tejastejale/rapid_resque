@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Image } from "react-native";
+import { Image, LogBox } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import * as Font from "expo-font";
 import { Asset } from "expo-asset";
@@ -39,6 +39,8 @@ function cacheImages(images) {
 }
 
 export default function App() {
+  LogBox.ignoreAllLogs(true);
+
   const [appIsReady, setAppIsReady] = useState(false);
 
   useEffect(() => {

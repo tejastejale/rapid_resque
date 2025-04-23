@@ -43,7 +43,15 @@ export const driver_register = (body) => {
   });
 };
 
-export const logout = () => API.post(`${LOGOUT}`);
+export const logout = async () => {
+  const token = await AsyncStorage.getItem("token");
+  const parsedToken = JSON.parse(token);
+  return API.post(`${LOGOUT}`, token, {
+    headers: {
+      Authorization: `Token ${parsedToken?.data?.token}`,
+    },
+  });
+};
 
 export const request_car = (body) => API.post(`${REQUEST_CAR}`, body);
 

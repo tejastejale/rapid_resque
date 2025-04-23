@@ -89,15 +89,22 @@ export default function Login({ navigation }) {
           device_id: expoPushToken.data,
         };
         const res = await makeLogin(body);
-        if (res.code === 200) {
-          navigation.navigate("Home");
+        if (res?.code === 200) {
+          setLoading(false);
+          // navigation.navigate("Home");
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Home" }],
+          });
           showToasts("SUCCESS", res.message);
         } else {
+          setLoading(false);
           showToasts("DANGER", res.data.errors[0] || "Something went wrong!");
         }
       } catch (error) {
         console.log(error);
         showToasts("DANGER", "Something went wrong!");
+        setLoading(false);
       } finally {
         setLoading(false);
       }

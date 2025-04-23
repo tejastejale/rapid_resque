@@ -134,7 +134,7 @@ export default function DriverLogin({ navigation }) {
         const res = await driverRegister(formData);
         setLoading(false);
         if (res.data?.code) {
-          // handleClear();
+          handleClear();
           Dialog.show({
             autoClose: false,
             type: "SUCCESS",
@@ -194,20 +194,20 @@ export default function DriverLogin({ navigation }) {
     }
   };
 
-  // const handleClear = () => {
-  //   setData({
-  //     firstName: "",
-  //     lastName: "",
-  //     phoneNumber: "",
-  //     email: "",
-  //     type: null,
-  //     license: null,
-  //     passportPhoto: null,
-  //     carPhoto: [],
-  //     password: "",
-  //     confirmPassword: "",
-  //   });
-  // };
+  const handleClear = () => {
+    setData({
+      firstName: "",
+      lastName: "",
+      phoneNumber: "",
+      email: "",
+      type: null,
+      license: null,
+      passportPhoto: null,
+      carPhoto: [],
+      password: "",
+      confirmPassword: "",
+    });
+  };
 
   const renderDownIcon = () => (
     <Icon
