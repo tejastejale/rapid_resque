@@ -85,7 +85,7 @@ class DrawerItem extends React.Component {
 
     try {
       const res = await makeLogout();
-      if (res.code !== 200) alert("Something Went Wrong!");
+      // if (res.code !== 200) alert("Something Went Wrong!");
       navigation.navigate("Login");
     } catch (error) {
       console.log(error);

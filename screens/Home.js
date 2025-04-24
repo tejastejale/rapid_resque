@@ -56,9 +56,6 @@ import car from "../assets/imgs/car.png";
 import { BASE } from "./API/constants";
 import userPic from "../assets/imgs/user.png";
 import Compass from "./Widget/Compass";
-import MaskedView from "@react-native-masked-view/masked-view";
-import { LinearGradient } from "expo-linear-gradient";
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 Mapbox.setAccessToken(
   "pk.eyJ1IjoidGVqYXNjb2RlNDciLCJhIjoiY200d3pqMGh2MGtldzJwczgwMTZnbHc0dCJ9.KyxtwzKWPT9n1yDElo8HEQ"
@@ -301,67 +298,9 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    const getState = async (type) => {
-      try {
-        const currentState = await getCurrentRequest();
-        console.log(currentState, "jk");
-        // console.log(currentState?.data?.user_state);
-        if (currentState?.code === 200) {
-          if (type === "customer") {
-            switch (currentState?.data?.user_state) {
-              case null:
-                clear();
-                break;
-              case "pending": {
-                setUiState((prev) => ({
-                  ...prev,
-                  isRequested: true,
-                }));
-                break;
-              }
-              case "in_progress": {
-                setUiState((prev) => ({
-                  ...prev,
-                  isRequested: true,
-                }));
-                setRequestAccepted(true);
-                setSelectedData(currentState?.data?.requests);
-                break;
-              }
-              default:
-                return;
-            }
-          } else {
-            switch (currentState?.data?.user_state) {
-              case null:
-                clear();
-                break;
-              case "completed": {
-                clear();
-                break;
-              }
-              case "in_progress": {
-                setUiState((prev) => ({
-                  ...prev,
-                  isRequested: true,
-                }));
-                setRequestAccepted(true);
-                setSelectedData(currentState?.data?.requests);
-                break;
-              }
-              default:
-                return;
-            }
-          }
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    };
     const getRole = async () => {
       const token = await AsyncStorage.getItem("token"); // Get token from AsyncStorage
       const parsedToken = JSON.parse(token);
-      console.log(parsedToken.data?.profile?.user_type);
       setRole(parsedToken.data?.profile?.user_type);
       getState(parsedToken.data?.profile?.user_type);
     };
@@ -403,8 +342,13 @@ const Home = () => {
 
   useEffect(() => {
     if (
-      selectedData?.data?.location?.lat &&
-      selectedData?.data?.location?.lon
+      selectedData?.driver?.location?.lat &&
+      selectedData?.driver?.location?.lon
+    ) {
+      createRoute();
+    } else if (
+      typeof socketData === "object" &&
+      Object.keys(socketData)?.length > 0
     ) {
       createRoute();
     }
@@ -472,14 +416,16 @@ const Home = () => {
         setLoc([location.coords.longitude, location.coords.latitude]);
         return;
       } else {
-        setIsMapLoading(false);
-        setUiState((prev) => ({ ...prev, showMap: false }));
+        setUiState((prev) => ({
+          ...prev,
+          isMapLoading: false,
+          showMap: false,
+        }));
 
         alert("You must grant location permission for tracking!");
       }
     } catch (error) {
-      setIsMapLoading(false);
-      setUiState((prev) => ({ ...prev, showMap: false }));
+      setUiState((prev) => ({ ...prev, isMapLoading: false, showMap: false }));
 
       console.error("Error requesting permissions or getting location:", error);
       alert("Error while getting location, please try again later!");
@@ -591,6 +537,7 @@ const Home = () => {
       const res = await acceptRequest(id);
       if (res?.code === 200) {
         setRequestAccepted(true);
+        getState(role);
       } else {
         alert("Something went wrong!");
       }
@@ -606,9 +553,9 @@ const Home = () => {
     setUiState((prev) => ({ ...prev, visible: true }));
   };
 
-  useEffect(() => {
-    console.log(selectedData);
-  }, [selectedData]);
+  // useEffect(() => {
+  //   console.log(selectedData);
+  // }, [selectedData]);
 
   const handleCancel = () => {
     setUiState((prev) => ({ ...prev, visible: false }));
@@ -618,6 +565,66 @@ const Home = () => {
     if (selectedId) {
       handleAccept(selectedId);
       setUiState((prev) => ({ ...prev, visible: false }));
+    }
+  };
+
+  const getState = async (type) => {
+    try {
+      const currentState = await getCurrentRequest();
+      console.log(JSON.stringify(currentState, null, 2), "state");
+      // console.log(currentState?.data?.user_state);
+      if (currentState?.code === 200) {
+        if (type === "customer") {
+          switch (currentState?.data?.user_state) {
+            case null:
+              clear();
+              break;
+            case "pending": {
+              setUiState((prev) => ({
+                ...prev,
+                isRequested: true,
+              }));
+              break;
+            }
+            case "in_progress": {
+              setUiState((prev) => ({
+                ...prev,
+                isRequested: true,
+              }));
+              setRequestAccepted(true);
+              setSelectedData(currentState?.data?.requests);
+              break;
+            }
+            default:
+              return;
+          }
+        } else {
+          switch (currentState?.data?.user_state) {
+            case null:
+              clear();
+              break;
+            case "completed": {
+              clear();
+              break;
+            }
+            case "in_progress": {
+              setUiState((prev) => ({
+                ...prev,
+                isRequested: true,
+              }));
+              setRequestAccepted(true);
+              setSelectedData(currentState?.data?.requests);
+              break;
+            }
+            default:
+              return;
+          }
+        }
+      }
+      return true;
+    } catch (error) {
+      console.log(error);
+      return false;
     }
   };
 
@@ -649,16 +656,59 @@ const Home = () => {
 
     const startCoords = `${loc[0]},${loc[1]}`;
     let endCoords;
+    console.log(JSON.stringify(selectedData, null, 2), role);
+    try {
+      if (role === "customer") {
+        endCoords = `${
+          selectedData?.driver?.location?.lon ||
+          updatedLocation?.longitude ||
+          socketData?.location?.lon
+        },${
+          selectedData?.driver?.location?.lat ||
+          updatedLocation?.latitude ||
+          socketData?.location?.lat
+        }`;
+      } else if (role === "driver") {
+        endCoords = `
+          ${
+            selectedData?.longitude || selectedData?.data?.driver?.location?.lon
+          },
+         ${selectedData?.latitude || selectedData?.data?.driver?.location?.lat}
+        `;
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    // try {
+    //   if (
+    //     typeof selectedData === "object" &&
+    //     Object.keys(selectedData)?.length > 0 &&
+    //     role === "customer"
+    //   )
+    //     endCoords = `${
+    //       selectedData?.driver?.location?.lon || updatedLocation?.longitude
+    //     },${selectedData?.driver?.location?.lat || updatedLocation?.latitude}`;
+    //   // else if (selectedData)
+    //   //   endCoords = `${selectedData.longitude},${selectedData.latitude}`;
+    //   else
+    //     endCoords = `${
+    //       updatedLocation?.longitude ||
+    //       selectedData?.longitude ||
+    //       !Array.isArray(socketData)
+    //         ? socketData?.location?.lon
+    //         : ""
+    //     },${
+    //       updatedLocation?.latitude ||
+    //       selectedData?.latitude ||
+    //       !Array.isArray(socketData)
+    //         ? socketData?.location?.lat
+    //         : ""
+    //     }`;
 
-    if (selectedData?.data)
-      endCoords = `${selectedData.data.location.lon},${selectedData.data.location.lat}`;
-    // else if (selectedData)
-    //   endCoords = `${selectedData.longitude},${selectedData.latitude}`;
-    else
-      endCoords = `${updatedLocation?.longitude || selectedData.longitude},${
-        updatedLocation?.latitude || selectedData.latitude
-      }`;
-
+    //   console.log(selectedData, endCoords);
+    // } catch (error) {
+    //   console.log(error);
+    // }
     const geometries = "geojson";
     const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${startCoords};${endCoords}?alternatives=true&geometries=${geometries}&steps=true&banner_instructions=true&overview=full&voice_instructions=true&access_token=pk.eyJ1IjoidGVqYXNjb2RlNDciLCJhIjoiY200d3pqMGh2MGtldzJwczgwMTZnbHc0dCJ9.KyxtwzKWPT9n1yDElo8HEQ`;
 
@@ -677,6 +727,7 @@ const Home = () => {
       // Extract coordinates
       let coordinates = json.routes[0]?.geometry?.coordinates;
       if (coordinates?.length) {
+        console.log("object");
         const routerFeature = makeRouterFeature([...coordinates]);
         setRouteDirections((prev) => ({ ...prev, routeThings: routerFeature }));
       } else {
@@ -744,6 +795,7 @@ const Home = () => {
       await AsyncStorage.removeItem("requestAccepted");
       await AsyncStorage.removeItem("isRequested");
       await AsyncStorage.removeItem("socketData");
+      await AsyncStorage.removeItem("updatedLocation");
 
       setRouteDirections({
         routeThings: null,
@@ -793,6 +845,10 @@ const Home = () => {
   const toggleSidebar = () => {
     setUiState((prev) => ({ ...prev, open: !prev.open }));
   };
+
+  useEffect(() => {
+    console.log(JSON.stringify(socketData, null, 2), role);
+  }, [socketData]);
 
   return (
     <Block flex center style={tw`w-full`}>
@@ -926,7 +982,8 @@ const Home = () => {
           <>
             {routeDirections?.routeThings &&
             routeDirections.routeThings.features &&
-            routeDirections.routeThings.features.length > 0 ? (
+            routeDirections.routeThings.features.length > 0 &&
+            requestAccepted ? (
               <ShapeSource
                 id="route-shape"
                 shape={routeDirections?.routeThings}
@@ -941,20 +998,20 @@ const Home = () => {
               <></>
             )}
           </>
-          {socketData?.type === "order_accepted_event" &&
-            "driver" in socketData && (
-              <PointAnnotation
-                id="driver"
-                style={tw`h-10 w-10`}
-                coordinate={[
-                  socketData?.location?.lon,
-                  socketData?.location?.lat,
-                ]}
-              >
-                <View />
-              </PointAnnotation>
-            )}
-
+          {socketData?.type === "order_accepted_event" && (
+            <PointAnnotation
+              id="driver"
+              style={tw`h-10 w-10`}
+              coordinate={[
+                socketData?.location?.lon ||
+                  selectedData?.driver?.location?.lon,
+                socketData?.location?.lat ||
+                  selectedData?.driver?.location?.lat,
+              ]}
+            >
+              <View />
+            </PointAnnotation>
+          )}
           {updatedLocation && role === "customer" && (
             <PointAnnotation
               id="driver_update"
@@ -973,11 +1030,12 @@ const Home = () => {
           {selectedData &&
             selectedData?.latitude &&
             selectedData?.longitude &&
-            requestAccepted && (
+            requestAccepted &&
+            role === "driver" && (
               <PointAnnotation
                 id="driver2"
                 style={tw`h-10 w-10`}
-                coordinate={[selectedData.latitude, selectedData?.longitude]}
+                coordinate={[selectedData?.longitude, selectedData?.latitude]}
               >
                 <View style={tw`h-10 w-10`}>
                   <Icon
@@ -992,7 +1050,8 @@ const Home = () => {
 
           {selectedData?.data?.location?.lat &&
             selectedData?.data?.location?.lon &&
-            requestAccepted && (
+            requestAccepted &&
+            role === "driver" && (
               <PointAnnotation
                 id="driver2"
                 style={tw`h-10 w-10`}
@@ -1093,10 +1152,14 @@ const Home = () => {
                     style={tw`w-full flex flex-row justify-between items-center pr-2`}
                   >
                     <View style={tw`w-[90%] flex flex-row items-center`}>
-                      <View style={tw`flex w-full overflow-hidden`}>
+                      <View style={tw`flex flex-col w-full overflow-hidden`}>
+                        <Text style={tw`text-lg text-gray-500`}>
+                          {selectedData?.data?.user?.name ||
+                            selectedData?.customer?.name}
+                        </Text>
                         <Text style={tw`text-lg text-gray-500`}>
                           {selectedData?.data?.user?.phone ||
-                            selectedData?.user?.phone}
+                            selectedData?.customer?.phone}
                         </Text>
                       </View>
                     </View>
@@ -1224,13 +1287,21 @@ const Home = () => {
                               ? {
                                   uri: `${BASE}/${socketData?.driver?.profile_pic}`,
                                 }
+                              : selectedData?.driver?.profile_pic
+                              ? {
+                                  uri: `${BASE}/${selectedData?.driver?.profile_pic}`,
+                                }
                               : userPic
                           }
                           style={tw`h-full w-20 rounded-l-lg`}
                         />
                         <View style={tw`flex h-full justify-center`}>
                           <Text style={tw`font-sm text-[0.8rem] text-gray-600`}>
-                            {socketData?.driver?.name}
+                            {socketData?.driver?.name
+                              ? socketData?.driver?.name
+                              : selectedData?.driver?.name
+                              ? selectedData?.driver?.name
+                              : "Unknown Driver"}
                           </Text>
                           <Text
                             style={tw`font-sm text-[0.8rem] text-gray-600 gap-2`}
@@ -1252,13 +1323,23 @@ const Home = () => {
                         <View style={tw`w-[90%] flex flex-row items-center`}>
                           <View style={tw`flex w-full overflow-hidden`}>
                             <Text style={tw`text-lg text-gray-500`}>
-                              {socketData?.driver?.phone}
+                              {socketData?.driver?.phone
+                                ? socketData?.driver?.phone
+                                : selectedData?.driver?.phone
+                                ? selectedData?.driver?.phone
+                                : "Unknown Number"}
                             </Text>
                           </View>
                         </View>
                         <Icon
                           onTouchStart={() => {
-                            call(socketData?.driver?.phone);
+                            call(
+                              socketData?.driver?.phone
+                                ? socketData?.driver?.phone
+                                : selectedData?.driver?.phone
+                                ? selectedData?.driver?.phone
+                                : ""
+                            );
                           }}
                           name="phone"
                           family="FontAwesome"

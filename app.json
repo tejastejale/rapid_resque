@@ -40,7 +40,7 @@
         "expo-notifications",
         {
           "defaultChannel": "default",
-          "sounds": ["./assets/alarm.mp3", "./assets/alarm.mp3"],
+          "sounds": ["./assets/alarm.wav"],
           "enableBackgroundRemoteNotifications": true
         }
       ]
