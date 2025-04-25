@@ -571,7 +571,7 @@ const Home = () => {
   const getState = async (type) => {
     try {
       const currentState = await getCurrentRequest();
-      console.log(JSON.stringify(currentState, null, 2), "state");
+      // console.log(JSON.stringify(currentState, null, 2), "state");
       // console.log(currentState?.data?.user_state);
       if (currentState?.code === 200) {
         if (type === "customer") {
@@ -656,7 +656,7 @@ const Home = () => {
 
     const startCoords = `${loc[0]},${loc[1]}`;
     let endCoords;
-    console.log(JSON.stringify(selectedData, null, 2), role);
+    // console.log(JSON.stringify(selectedData, null, 2), role);
     try {
       if (role === "customer") {
         endCoords = `${
@@ -679,6 +679,7 @@ const Home = () => {
     } catch (error) {
       console.log(error);
     }
+
     // try {
     //   if (
     //     typeof selectedData === "object" &&
@@ -727,7 +728,6 @@ const Home = () => {
       // Extract coordinates
       let coordinates = json.routes[0]?.geometry?.coordinates;
       if (coordinates?.length) {
-        console.log("object");
         const routerFeature = makeRouterFeature([...coordinates]);
         setRouteDirections((prev) => ({ ...prev, routeThings: routerFeature }));
       } else {
@@ -742,6 +742,7 @@ const Home = () => {
       }));
     } catch (error) {
       console.error("Error fetching route:", error);
+      console.log(role);
     }
   };
 
@@ -846,9 +847,9 @@ const Home = () => {
     setUiState((prev) => ({ ...prev, open: !prev.open }));
   };
 
-  useEffect(() => {
-    console.log(JSON.stringify(socketData, null, 2), role);
-  }, [socketData]);
+  // useEffect(() => {
+  //   console.log(JSON.stringify(socketData, null, 2), role);
+  // }, [socketData]);
 
   return (
     <Block flex center style={tw`w-full`}>
@@ -983,7 +984,7 @@ const Home = () => {
             {routeDirections?.routeThings &&
             routeDirections.routeThings.features &&
             routeDirections.routeThings.features.length > 0 &&
-            requestAccepted ? (
+            (requestAccepted || role === "customer") ? (
               <ShapeSource
                 id="route-shape"
                 shape={routeDirections?.routeThings}

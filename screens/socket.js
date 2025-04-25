@@ -61,7 +61,7 @@ export const useWebSocket = (
           if (parsedData?.type === "order_completed_event") {
             setIsCompleted(true);
           } else if ("driver" in parsedData) {
-            // console.log("Received:", JSON.stringify(parsedData, null, 2));
+            console.log("Received:", JSON.stringify(parsedData, null, 2));
             setSocketData(parsedData);
           } else if (parsedData?.type === "location_update")
             setUpdatedLocation(parsedData);
