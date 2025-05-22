@@ -1,13 +1,24 @@
 import React from "react";
-import { StyleSheet, TouchableOpacity, Linking } from "react-native";
+import {
+  StyleSheet,
+  TouchableOpacity,
+  Linking,
+  ActivityIndicator,
+} from "react-native";
 import { Block, Text, theme } from "galio-framework";
 
 import Icon from "./Icon";
 import argonTheme from "../constants/Theme";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { makeLogout } from "../screens/API/actions/logout";
 
 class DrawerItem extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      isLoggingOut: false,
+    };
+  }
+
   renderIcon = () => {
     const { title, focused } = this.props;
 
@@ -80,20 +91,25 @@ class DrawerItem extends React.Component {
     }
   };
 
-  handleLogout = async (title) => {
+  handleLogout = async () => {
     const { navigation } = this.props;
+    this.setState({ isLoggingOut: true });
 
     try {
       const res = await makeLogout();
-      // if (res.code !== 200) alert("Something Went Wrong!");
+      console.log(res);
       navigation.navigate("Login");
     } catch (error) {
       console.log(error);
       alert("Could not logout, try again later!");
+    } finally {
+      this.setState({ isLoggingOut: false });
     }
   };
+
   render() {
     const { focused, title, navigation } = this.props;
+    const { isLoggingOut } = this.state;
 
     const containerStyles = [
       styles.defaultStyle,
@@ -104,9 +120,7 @@ class DrawerItem extends React.Component {
       <TouchableOpacity
         style={{ height: 60 }}
         onPress={() =>
-          title === "Logout"
-            ? this.handleLogout(title)
-            : navigation.navigate(title)
+          title === "Logout" ? this.handleLogout() : navigation.navigate(title)
         }
       >
         <Block flex row style={containerStyles}>
@@ -114,13 +128,20 @@ class DrawerItem extends React.Component {
             {this.renderIcon()}
           </Block>
           <Block row center flex={0.9}>
-            <Text
-              size={15}
-              bold={focused ? true : false}
-              color={focused ? "white" : "rgba(0,0,0,0.5)"}
-            >
-              {title}
-            </Text>
+            {title === "Logout" && isLoggingOut ? (
+              <ActivityIndicator
+                size="small"
+                color={focused ? "white" : "gray"}
+              />
+            ) : (
+              <Text
+                size={15}
+                bold={focused}
+                color={focused ? "white" : "rgba(0,0,0,0.5)"}
+              >
+                {title}
+              </Text>
+            )}
           </Block>
         </Block>
       </TouchableOpacity>
