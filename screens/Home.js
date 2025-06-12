@@ -1166,8 +1166,8 @@ const Home = () => {
                     </View>
                     <Icon
                       onTouchStart={() => {
-                        // call(selectedData?.data?.user?.phone);
-                        clear();
+                        call(selectedData?.data?.user?.phone);
+                        // clear();
                       }}
                       name="phone"
                       family="FontAwesome"
