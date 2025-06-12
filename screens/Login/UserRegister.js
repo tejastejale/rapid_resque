@@ -8,6 +8,9 @@ import {
   Dimensions,
   ActivityIndicator,
   BackHandler,
+  ScrollView,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
 } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import tw from "twrnc";
@@ -22,6 +25,7 @@ import {
 } from "react-native-alert-notification"; // Import alert notification module
 import ArButton from "../../components/Button";
 import MaskedView from "@react-native-masked-view/masked-view";
+import { Keyboard } from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -222,162 +226,170 @@ export default function UserLogin({ navigation }) {
 
   return (
     <AlertNotificationRoot>
-      <View style={tw`h-full w-full bg-white`}>
-        <View style={tw`h-[20%] w-full`}>
-          {/* Carousel Section */}
-          <Carousel
-            loop
-            width={width}
-            autoPlay={true}
-            autoPlayInterval={3000}
-            data={carouselData}
-            renderItem={({ item }) => (
-              <View style={tw`h-full w-full items-center justify-center`}>
-                <Image
-                  source={item.image}
-                  style={tw`h-full w-full rounded-lg`}
-                  resizeMode="contain"
-                />
-              </View>
-            )}
-          />
-        </View>
-
-        <LinearGradient
-          colors={["#e5e7eb", "#FFFFFF"]}
-          style={tw`flex flex-col h-[80%] justify-evenly bg-gray-200 w-full rounded-t-[50px] p-8 elevation-20`}
-        >
-          <View style={tw`flex `}>
-            <View style={tw`flex flex-row gap-2 mb-2`}>
-              <Text
-                style={[
-                  tw`font-semibold italic text-2xl`,
-                  { fontSize: getResponsiveFontSize(22) },
-                ]}
-              >
-                Welcome to
-              </Text>
-              <MaskedView
-                style={{ height: "auto", width: 300 }}
-                maskElement={
-                  <View
-                    style={tw`flex items-start justify-start h-full mt-[2px]`}
-                  >
-                    <Animated.Text
-                      style={[
-                        tw`text-violet-600 italic font-semibold `,
-                        {
-                          fontSize: getResponsiveFontSize(22),
-                          transform: [{ translateX: animatedValue }],
-                        },
-                      ]}
-                    >
-                      Rapid Rescue
-                    </Animated.Text>
+      <KeyboardAvoidingView behavior={"height"} style={tw`flex-1`}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            style={tw`bg-white`}
+            contentContainerStyle={tw`flex-grow`}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={tw`h-[20%] w-full`}>
+              <Carousel
+                loop
+                width={width}
+                autoPlay={true}
+                autoPlayInterval={3000}
+                data={carouselData}
+                renderItem={({ item }) => (
+                  <View style={tw`h-full w-full items-center justify-center`}>
+                    <Image
+                      source={item.image}
+                      style={tw`h-full w-full rounded-lg`}
+                      resizeMode="contain"
+                    />
                   </View>
-                }
-              >
-                <LinearGradient
-                  colors={["red", "#a684ff"]}
-                  start={{ x: 1, y: 4 }}
-                  end={{ x: 0, y: 1 }}
-                  style={{ flex: 1 }}
-                />
-              </MaskedView>
+                )}
+              />
             </View>
-            <Text style={tw`font-normal italic text-md`}>
-              Do note your password for login!
-            </Text>
-          </View>
-          <View>
-            <ArInput
-              onChangeText={(e) => handleChange("first_name", e)}
-              placeholder="First Name *"
-              value={InputData.first_name}
-            />
-            {InputData.firstNameError && (
-              <Text style={tw`text-red-500 italic text-sm mb-2`}>
-                {InputData.firstNameError}
-              </Text>
-            )}
 
-            <ArInput
-              onChangeText={(e) => handleChange("last_name", e)}
-              placeholder="Last Name *"
-              value={InputData.last_name}
-            />
-            {InputData.lastNameError && (
-              <Text style={tw`text-red-500 italic text-sm mb-2`}>
-                {InputData.lastNameError}
-              </Text>
-            )}
-
-            <ArInput
-              maxLength={10}
-              keyboardType="numeric"
-              onChangeText={(e) => handleChange("phone", e)}
-              placeholder="Phone Number *"
-              value={InputData.phone}
-            />
-            {InputData.phoneError && (
-              <Text style={tw`text-red-500 italic text-sm mb-2`}>
-                {InputData.phoneError}
-              </Text>
-            )}
-
-            <ArInput
-              onChangeText={(e) => handleChange("email", e)}
-              placeholder="Email *"
-              value={InputData.email}
-            />
-            {InputData.emailError && (
-              <Text style={tw`text-red-500 italic text-sm mb-2`}>
-                {InputData.emailError}
-              </Text>
-            )}
-
-            <ArInput
-              onChangeText={(e) => handleChange("password", e)}
-              placeholder="Password *"
-              secureTextEntry
-              value={InputData.password}
-            />
-            {InputData.passwordError && (
-              <Text style={tw`text-red-500 italic text-sm mb-2`}>
-                {InputData.passwordError}
-              </Text>
-            )}
-
-            <ArInput
-              onChangeText={(e) => handleChange("confirm_password", e)}
-              placeholder="Confirm Password *"
-              secureTextEntry
-              value={InputData.confirm_password}
-            />
-            {InputData.confirmPasswordError && (
-              <Text style={tw`text-red-500 italic text-sm mb-2`}>
-                {InputData.confirmPasswordError}
-              </Text>
-            )}
-          </View>
-
-          <View style={tw`w-full`}>
-            <Button
-              disabled={btnDisable()}
-              onPress={handleLogin}
-              style={tw`w-full m-0 mt-2 bg-violet-600 rounded-2xl elevation-10 ${
-                !InputData.isValid || isLoading ? "opacity-50" : ""
-              }`}
+            <LinearGradient
+              colors={["#e5e7eb", "#FFFFFF"]}
+              style={tw`flex flex-col h-[80%] max-h-full justify-evenly bg-gray-200 w-full rounded-t-[50px] p-8 elevation-20`}
             >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                "Continue"
-              )}
-            </Button>
-          </View>
-        </LinearGradient>
-      </View>
+              <View style={tw`flex`}>
+                <View style={tw`flex flex-row gap-2 mb-2`}>
+                  <Text
+                    style={[
+                      tw`font-semibold italic text-2xl`,
+                      { fontSize: getResponsiveFontSize(22) },
+                    ]}
+                  >
+                    Welcome to
+                  </Text>
+                  <MaskedView
+                    style={{ height: "auto", width: 300 }}
+                    maskElement={
+                      <View
+                        style={tw`flex items-start justify-start h-full mt-[2px]`}
+                      >
+                        <Animated.Text
+                          style={[
+                            tw`text-violet-600 italic font-semibold `,
+                            {
+                              fontSize: getResponsiveFontSize(22),
+                              transform: [{ translateX: animatedValue }],
+                            },
+                          ]}
+                        >
+                          Rapid Rescue
+                        </Animated.Text>
+                      </View>
+                    }
+                  >
+                    <LinearGradient
+                      colors={["red", "#a684ff"]}
+                      start={{ x: 1, y: 4 }}
+                      end={{ x: 0, y: 1 }}
+                      style={{ flex: 1 }}
+                    />
+                  </MaskedView>
+                </View>
+                <Text style={tw`font-normal italic text-md`}>
+                  Do note your password for login!
+                </Text>
+              </View>
+
+              <View>
+                <ArInput
+                  onChangeText={(e) => handleChange("first_name", e)}
+                  placeholder="First Name *"
+                  value={InputData.first_name}
+                />
+                {InputData.firstNameError && (
+                  <Text style={tw`text-red-500 italic text-sm mb-2`}>
+                    {InputData.firstNameError}
+                  </Text>
+                )}
+
+                <ArInput
+                  onChangeText={(e) => handleChange("last_name", e)}
+                  placeholder="Last Name *"
+                  value={InputData.last_name}
+                />
+                {InputData.lastNameError && (
+                  <Text style={tw`text-red-500 italic text-sm mb-2`}>
+                    {InputData.lastNameError}
+                  </Text>
+                )}
+
+                <ArInput
+                  maxLength={10}
+                  keyboardType="numeric"
+                  onChangeText={(e) => handleChange("phone", e)}
+                  placeholder="Phone Number *"
+                  value={InputData.phone}
+                />
+                {InputData.phoneError && (
+                  <Text style={tw`text-red-500 italic text-sm mb-2`}>
+                    {InputData.phoneError}
+                  </Text>
+                )}
+
+                <ArInput
+                  onChangeText={(e) => handleChange("email", e)}
+                  placeholder="Email *"
+                  value={InputData.email}
+                />
+                {InputData.emailError && (
+                  <Text style={tw`text-red-500 italic text-sm mb-2`}>
+                    {InputData.emailError}
+                  </Text>
+                )}
+
+                <ArInput
+                  onChangeText={(e) => handleChange("password", e)}
+                  placeholder="Password *"
+                  secureTextEntry
+                  value={InputData.password}
+                />
+                {InputData.passwordError && (
+                  <Text style={tw`text-red-500 italic text-sm mb-2`}>
+                    {InputData.passwordError}
+                  </Text>
+                )}
+
+                <ArInput
+                  onChangeText={(e) => handleChange("confirm_password", e)}
+                  placeholder="Confirm Password *"
+                  secureTextEntry
+                  value={InputData.confirm_password}
+                />
+                {InputData.confirmPasswordError && (
+                  <Text style={tw`text-red-500 italic text-sm mb-2`}>
+                    {InputData.confirmPasswordError}
+                  </Text>
+                )}
+              </View>
+
+              <View style={tw`w-full`}>
+                <Button
+                  disabled={btnDisable()}
+                  onPress={handleLogin}
+                  style={tw`w-full m-0 mt-2 bg-violet-600 rounded-2xl elevation-10 ${
+                    !InputData.isValid || isLoading ? "opacity-50" : ""
+                  }`}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    "Continue"
+                  )}
+                </Button>
+              </View>
+            </LinearGradient>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </AlertNotificationRoot>
   );
 }

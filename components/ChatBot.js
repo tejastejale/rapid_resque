@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  BackHandler,
 } from "react-native";
 // import * as Speech from "expo-speech";
 import { FontAwesome } from "@expo/vector-icons";
@@ -29,6 +30,19 @@ const DoctorChat = ({ setOpen, open }) => {
   const API_KEY = "AIzaSyDSXcbKdICgrc6kfNeU187WgIibOF_Wrbo";
 
   useEffect(() => {
+    const backAction = async () => {
+      setOpen(!open);
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove(); // Cleanup the listener on unmount
+  }, []);
+
+  useEffect(() => {
     const startChat = async () => {
       const genAI = new GoogleGenerativeAI.GoogleGenerativeAI(API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -38,7 +52,7 @@ const DoctorChat = ({ setOpen, open }) => {
         "You are a indian doctor providing helpful, accurate health advice in a friendly and concise manner. Keep responses short like maximum 100 words and always suggest seeing a real doctor for serious concerns and also dont add any bold words keep everything in normal text.";
       const result = await model.generateContent(prompt);
       const response = result.response;
-      const text = response.text();
+      // const text = response.text();
       // console.log(text);
 
       // showMessage({
@@ -108,7 +122,18 @@ const DoctorChat = ({ setOpen, open }) => {
           item.user ? styles.userBubble : styles.botBubble,
         ]}
       >
-        {item.text}
+        {/* {item.text.replaceAll("*", "")} */}
+        {item.text.split(/(\*\*.*?\*\*)/g).map((part, index) => {
+          if (part.startsWith("**") && part.endsWith("**")) {
+            return (
+              <Text key={index} style={{ fontWeight: "bold" }}>
+                {part.slice(2, -2)}
+              </Text>
+            );
+          } else {
+            return <Text key={index}>{part}</Text>;
+          }
+        })}
       </Text>
     </View>
   );
